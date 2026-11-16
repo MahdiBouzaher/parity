@@ -81,6 +81,9 @@ export function WhyCard({ state, total, explanation, fixedBody, canFix, busy, sw
         {explanation.source === 'rules' ? (
           <p className="note">Written by the rule layer. Add a key for a model-written explanation.</p>
         ) : null}
+        {!canFix && explanation.source !== 'none' ? (
+          <p className="note">No fix was found that improves the checks. You can keep the difference as is.</p>
+        ) : null}
       </div>
       <div className="acts">
         <Button onClick={onKeep} disabled={blocked}>

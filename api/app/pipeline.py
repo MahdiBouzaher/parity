@@ -89,12 +89,12 @@ def make_summary(checks, expected_rows, seconds, tolerances):
     }
 
 
-def evaluate(run_id, python, dataset_id):
+def evaluate(run_id, python, dataset_id, track=True):
     row, input_file, expected_files = load_run_inputs(dataset_id)
     tolerances = db.loads(row["tolerances_json"], {})
     names = [f["table_name"] for f in expected_files]
     input_bytes = Path(input_file["path"]).read_bytes()
-    result = runner.run_python(python, input_bytes, names, config.RUN_TIMEOUT, key=run_id)
+    result = runner.run_python(python, input_bytes, names, config.RUN_TIMEOUT, key=run_id if track else None)
     if not result.ok:
         return result, None, None
     if not result.tables:
@@ -128,6 +128,16 @@ def build_context(dataset_id, filename):
     )
 
 
+def fix_scorer(run_id, dataset_id):
+    def score(candidate):
+        result, checks, summary = evaluate(run_id, candidate, dataset_id, track=False)
+        if not result.ok or checks is None:
+            return None
+        return summary["matched"], [c for c in checks if c["status"] == "differs"]
+
+    return score
+
+
 def build_report(run, python, checks, summary, analysis, ctx, previous):
     failing = [c for c in checks if c["status"] == "differs"]
     explanation = previous
@@ -138,7 +148,8 @@ def build_report(run, python, checks, summary, analysis, ctx, previous):
             run["source"], run["lang"], python, failing, analysis, ctx, total=summary["total"]
         )
         proposed = translation.propose_fix(
-            run["source"], run["lang"], python, failing, analysis, found
+            run["source"], run["lang"], python, failing, analysis, found,
+            score=fix_scorer(run["id"], run["dataset_id"]), baseline=summary["matched"],
         )
         explanation = asdict(found)
         patch = asdict(proposed) if proposed is not None else None

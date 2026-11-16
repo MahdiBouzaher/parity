@@ -94,3 +94,14 @@ def repair_messages(messages, previous, error):
         {"role": "assistant", "content": previous},
         {"role": "user", "content": f"That patch could not be applied: {error} Send a corrected JSON object."},
     ]
+
+
+def retry_messages(messages, previous, still_failing):
+    if still_failing:
+        detail = "These checks still differ after your patch:\n" + compact_checks(still_failing)
+    else:
+        detail = "The patched Python did not run or did not improve the checks."
+    return messages + [
+        {"role": "assistant", "content": previous},
+        {"role": "user", "content": f"That patch applied but did not improve the result. {detail}\nLook at which column or line causes the difference and send a corrected JSON object."},
+    ]

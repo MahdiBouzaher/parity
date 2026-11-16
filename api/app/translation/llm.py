@@ -184,7 +184,18 @@ def _patch_from(data):
     return Patch(_clean_text(summary) if isinstance(summary, str) and summary.strip() else "Fix the translation.", hunks)
 
 
-def propose_fix(code, lang, python, failing_checks, analysis, explanation):
+def _improves(python, patch, score, baseline):
+    if score is None:
+        return True, None
+    patched, _ = apply_patch(python, patch)
+    result = score(patched)
+    if result is None:
+        return False, None
+    matched, failing = result
+    return matched > baseline, failing
+
+
+def propose_fix(code, lang, python, failing_checks, analysis, explanation, score=None, baseline=0):
     tag = explanation.tag if explanation is not None else None
     if is_configured() and failing_checks:
         messages = prompts.fix_messages(code, lang, python, failing_checks, explanation)
@@ -193,8 +204,10 @@ def propose_fix(code, lang, python, failing_checks, analysis, explanation):
             try:
                 text = _complete(messages, 2500)
                 patch = _patch_from(_parse_json(text))
-                apply_patch(python, patch)
-                return patch
+                better, still_failing = _improves(python, patch, score, baseline)
+                if better:
+                    return patch
+                messages = prompts.retry_messages(messages, text, still_failing)
             except PatchError as exc:
                 messages = prompts.repair_messages(messages, text, str(exc))
             except ValueError:
@@ -202,6 +215,10 @@ def propose_fix(code, lang, python, failing_checks, analysis, explanation):
             except Exception:
                 break
     try:
-        return rule_fix(python, analysis, failing_checks, tag)
+        patch = rule_fix(python, analysis, failing_checks, tag)
+        if patch is None:
+            return None
+        better, _ = _improves(python, patch, score, baseline)
+        return patch if better else None
     except Exception:
         return None
