@@ -1,0 +1,27 @@
+.hero{font-weight:400;font-size:clamp(40px,6.4vw,64px);line-height:1.1;letter-spacing:-.037em;margin-top:clamp(40px,10vh,104px)}
+.hero .line{display:block;overflow:hidden;padding-bottom:.07em}
+.hero .line>span{display:block;animation:up .95s var(--ease) both;animation-delay:calc(var(--i,0)*120ms + 80ms)}
+.hero .dim{color:var(--muted)}
+.sub{margin:22px 0 40px;max-width:720px;font-size:17px;color:var(--muted)}
+.editor:focus-within,.editor.drag{border-color:var(--line-2)}
+.editor.drag{border-color:var(--text)}
+.tabs{position:relative;display:flex;gap:6px}
+.pill{position:absolute;top:0;left:0;height:100%;width:0;border-radius:7px;background:var(--surface-2);border:1px solid var(--line-2);transition:transform .34s var(--ease),width .34s var(--ease)}
+.tab{position:relative;z-index:1;background:none;border:0;padding:5px 14px;border-radius:7px;font-size:13px;color:var(--muted);cursor:pointer;transition:color .2s}
+.tab[aria-selected=true]{color:var(--text)}
+.hint{font-size:13px;color:var(--muted)}
+.ebody{display:grid;grid-template-columns:auto minmax(0,1fr);height:300px;font:14px/28px var(--mono)}
+.gutter{padding:16px 12px 16px 24px;text-align:right;color:var(--ghost);overflow:hidden;white-space:pre;user-select:none}
+.stack{position:relative;min-width:0;overflow:hidden}
+.stack pre,.stack textarea{position:absolute;inset:0;margin:0;border:0;padding:16px 24px 16px 8px;font:inherit;white-space:pre;tab-size:2}
+.stack pre{overflow:hidden;color:var(--pl);pointer-events:none}
+.stack textarea{overflow:auto;resize:none;outline:none;background:transparent;color:transparent;-webkit-text-fill-color:transparent;caret-color:var(--text)}
+.stack textarea::selection{background:rgba(231,232,234,.2)}
+.efoot{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 16px;border-top:1px solid var(--line)}
+.status{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
+.status .dot{width:7px;height:7px;border-radius:50%;background:var(--ok)}
+.status .faint{color:var(--faint)}
+.status .lang{transition:opacity .2s}
+.foot-hint{margin-top:26px;font-size:13px;color:var(--faint)}
+.foot-hint+.foot-hint{margin-top:6px}
+.k{color:var(--kw)}.s{color:var(--str)}.n{color:var(--num)}.c{color:var(--cmt)}

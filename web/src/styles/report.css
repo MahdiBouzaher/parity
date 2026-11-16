@@ -1,0 +1,83 @@
+.crumb{margin-top:34px;font-size:13px;color:var(--muted)}
+.rhead{display:flex;align-items:center;justify-content:space-between;gap:16px 24px;flex-wrap:wrap;margin-top:14px}
+.rtitle{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.rtitle h2{font-size:34px;font-weight:400;letter-spacing:-.03em;line-height:1.15;overflow-wrap:anywhere}
+.chip{display:inline-flex;align-items:center;gap:8px;height:26px;padding:0 12px;border-radius:13px;border:1px solid var(--warn);background:var(--warn-tint);color:var(--warn);font-size:12.5px;transition:color .4s,background .4s,border-color .4s}
+.chip i{width:7px;height:7px;border-radius:50%;background:currentColor}
+.chip.ok{color:var(--ok);background:var(--ok-tint);border-color:var(--ok-dim)}
+.chip.kept{color:var(--muted);background:transparent;border-color:var(--line-2)}
+.ractions{display:flex;gap:12px}
+.summary{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1.6fr);margin-top:32px}
+.sum-l{padding:28px 32px 26px;border-right:1px solid var(--line)}
+.big{font-size:50px;line-height:1.05;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.big .dim{color:var(--muted)}
+.sum-l p{margin:6px 0 18px;font-size:15px;color:var(--muted)}
+.segs{display:flex;flex-wrap:wrap;gap:4px}
+.seg{width:22px;height:5px;border-radius:3px;background:var(--ok);transform-origin:left;animation:grow .4s var(--ease) both;animation-delay:calc(var(--k)*45ms + 450ms);transition:background .45s}
+.seg.warn{background:var(--warn)}.seg.kept{background:var(--faint)}
+.sum-r{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-content:center;padding:28px 32px}
+.stat small{display:block;font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.stat b{display:block;margin-top:6px;font-size:26px;font-weight:400;letter-spacing:-.025em;font-variant-numeric:tabular-nums;white-space:nowrap}
+.compare{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;margin-top:24px}
+.code{display:flex;flex-direction:column;min-width:0}
+.code .phead{padding:15px 24px;font:13px var(--mono);color:var(--muted)}
+.code .phead small{font:11.5px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.lines{padding:14px 0 18px;font:14px/25px var(--mono);overflow-x:auto;color:var(--pl)}
+.ln{display:flex;justify-content:space-between;gap:16px;min-height:25px;padding:0 24px;white-space:pre;animation:fade .4s both;animation-delay:calc(var(--k)*35ms + 350ms);transition:background .5s}
+.ln .tx{min-width:0}
+.ln.flag{background:var(--warn-tint);animation:fade .4s both,glow 1.6s 1.3s ease-in-out;animation-delay:calc(var(--k)*35ms + 350ms),1.3s}
+.ln.fixed{background:var(--ok-tint)}
+.ln .tag{align-self:center;font:11.5px var(--sans);color:var(--warn);white-space:nowrap}
+.ln.fixed .tag{color:var(--ok)}
+.static .ln{animation:none}
+.static .ln.new{animation:slide .5s var(--ease) both}
+.tbl{margin-top:24px;overflow:hidden}
+.tscroll{overflow-x:auto}
+.tin{min-width:700px}
+.trow{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1.15fr) minmax(0,1.15fr) 120px 64px;align-items:center;height:52px;padding:0 24px;border-bottom:1px solid var(--line);font-size:15px;transition:background .5s}
+.trow.head{height:44px;font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.trow.in{animation:rise .5s var(--ease) both;animation-delay:calc(var(--k)*60ms + 650ms)}
+.trow.click{cursor:pointer}
+.trow.click:hover{background:var(--surface-2)}
+.trow .m{font:14px var(--mono);color:var(--muted);font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.trow .m b{display:inline-block;font-weight:400}
+.trow .m b.flip{animation:roll .5s var(--ease) both}
+.trow.diff{background:var(--warn-tint)}
+.trow.diff.click:hover{background:var(--warn-tint)}
+.trow.diff .m.py{color:var(--text)}
+.res{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--ok);transition:color .35s}
+.res i{width:7px;height:7px;border-radius:50%;background:currentColor}
+.trow.diff .res{color:var(--warn)}
+.delta{justify-self:end;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:13px var(--mono);color:var(--warn);transition:opacity .3s}
+.more,.rdet{display:grid;grid-template-rows:0fr;transition:grid-template-rows .5s var(--ease)}
+.more.open,.rdet.open{grid-template-rows:1fr}
+.more>div,.rdet>div{min-height:0;overflow:hidden}
+.more .trow{animation:none}
+.rdin{padding:16px 24px 18px;border-bottom:1px solid var(--line);background:var(--surface-2);font-size:13px;color:var(--muted)}
+.rdin p{font-size:13px;color:var(--muted)}
+.rdin .kv{display:flex;gap:12px;margin-bottom:6px}
+.rdin .kv small{font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);min-width:84px;line-height:20px}
+.rdin .kv span{font:13px var(--mono);color:var(--text)}
+.mm{margin-top:12px;display:grid;gap:4px;font:13px var(--mono);font-variant-numeric:tabular-nums}
+.mm div{display:grid;grid-template-columns:72px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);gap:12px;color:var(--muted)}
+.mm div span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mm div .a{color:var(--text)}
+.tfoot{display:flex;align-items:center;justify-content:space-between;height:52px;padding:0 24px;font-size:14px;color:var(--muted)}
+.tfoot button{background:none;border:0;padding:6px 0;font-size:14px;cursor:pointer;color:var(--text)}
+.tfoot button:hover{text-decoration:underline;text-underline-offset:3px}
+.why{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px 32px;align-items:end;margin-top:24px;padding:28px 32px}
+.why.swap{animation:fade .4s both}
+.why h3{margin-bottom:12px;font-size:18px;font-weight:400;letter-spacing:-.01em}
+.why p{font-size:15px;color:var(--muted)}
+.why .note{margin-top:18px;font-size:13px;color:var(--faint)}
+.why .note+.note{margin-top:6px}
+.why .acts{display:flex;gap:12px;flex-wrap:wrap}
+.why .okmark{display:inline-block;width:8px;height:8px;margin-right:10px;border-radius:50%;background:var(--ok)}
+@media (max-width:760px){
+  .compare,.summary{grid-template-columns:minmax(0,1fr)}
+  .sum-l{border-right:0;border-bottom:1px solid var(--line)}
+  .sum-r{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .why{grid-template-columns:minmax(0,1fr)}
+  .rtitle h2{font-size:28px}
+  .mm div{grid-template-columns:48px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)}
+}

@@ -1,0 +1,8 @@
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 18px;border-radius:8px;border:1px solid var(--line-2);background:transparent;color:var(--text);font-size:14px;cursor:pointer;white-space:nowrap;text-decoration:none;transition:background .2s,border-color .2s,transform .12s,color .2s}
+.btn:hover{border-color:#4B4F59;background:var(--surface-2)}
+.btn:active{transform:scale(.98)}
+.btn.sm{height:32px;padding:0 14px;font-size:13px}
+.btn.primary{background:var(--text);border-color:var(--text);color:var(--bg)}
+.btn.primary:hover{background:var(--btn-hover);border-color:var(--btn-hover)}
+.btn:disabled{cursor:default;opacity:.85}
+.spin{width:14px;height:14px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:spin .7s linear infinite}

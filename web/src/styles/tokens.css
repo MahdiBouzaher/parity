@@ -1,0 +1,11 @@
+:root{
+  --bg:#0A0B0D; --surface:#111216; --surface-2:#17181D; --line:#23252B; --line-2:#34373F;
+  --text:#E7E8EA; --muted:#8A8D96; --faint:#767983; --ghost:#4A4D55;
+  --ok:#63C68F; --ok-dim:#2F6B4C; --ok-tint:#14211A; --warn:#E3A64B; --warn-tint:#29231B;
+  --kw:#9AA5B8; --str:#C9B88F; --num:#8FB8A8; --cmt:#6E717A; --pl:#D4D6DA;
+  --btn-hover:#F3F4F6;
+  --sans:"Helvetica Neue","Neue Haas Grotesk Text Pro",Arial,system-ui,sans-serif;
+  --mono:Menlo,"SF Mono",ui-monospace,Consolas,"DejaVu Sans Mono",monospace;
+  --ease:cubic-bezier(.2,.7,.2,1);
+  color-scheme:dark;
+}

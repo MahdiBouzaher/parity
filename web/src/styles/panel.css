@@ -1,0 +1,2 @@
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;transition:border-color .25s}
+.phead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;border-bottom:1px solid var(--line)}

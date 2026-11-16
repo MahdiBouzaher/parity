@@ -1,0 +1,585 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body><title>Parity</title>
+<style>
+/* Layout: one 1040px column, three screens (translate, running, report). Quiet dark surfaces, hairline borders, light primary buttons, motion carries the story. */
+:root{
+  --bg:#0A0B0D; --surface:#111216; --surface-2:#17181D; --line:#23252B; --line-2:#34373F;
+  --text:#E7E8EA; --muted:#8A8D96; --faint:#767983; --ghost:#4A4D55;
+  --ok:#63C68F; --ok-dim:#2F6B4C; --ok-tint:#14211A; --warn:#E3A64B; --warn-tint:#29231B;
+  --kw:#9AA5B8; --str:#C9B88F; --num:#8FB8A8; --cmt:#6E717A; --pl:#D4D6DA;
+  --btn-hover:#F3F4F6;
+  --sans:"Helvetica Neue","Neue Haas Grotesk Text Pro",Arial,system-ui,sans-serif;
+  --mono:Menlo,"SF Mono",ui-monospace,Consolas,"DejaVu Sans Mono",monospace;
+  --ease:cubic-bezier(.2,.7,.2,1);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 112px}
+.wrap{max-width:1040px;margin:0 auto}
+h1,h2,h3,p{margin:0}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+
+/* motion primitives */
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes up{from{transform:translateY(108%)}to{transform:none}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes grow{from{transform:scaleX(0)}to{transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes draw{to{stroke-dashoffset:0}}
+@keyframes blink{50%{opacity:0}}
+@keyframes slide{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
+@keyframes roll{from{opacity:0;transform:translateY(60%)}to{opacity:1;transform:none}}
+@keyframes glow{0%,100%{box-shadow:inset 0 0 0 0 transparent}40%{box-shadow:inset 0 0 0 999px rgba(227,166,75,.07)}}
+.rise{animation:rise .7s var(--ease) both;animation-delay:calc(var(--i,0)*70ms + 60ms)}
+.view.out{opacity:0;transform:translateY(-6px);transition:opacity .14s,transform .14s}
+
+/* nav */
+.nav{display:flex;align-items:center;justify-content:space-between;height:64px}
+.brand{display:flex;align-items:center;gap:10px;background:none;border:0;padding:0;cursor:pointer;font-size:16px;letter-spacing:-.01em}
+.mark{display:grid;gap:3px;width:16px}.mark i{display:block;height:2.5px;border-radius:1px;background:var(--text)}
+.navlinks{display:flex;align-items:center;gap:24px}
+.link{background:none;border:0;padding:6px 0;font-size:14px;color:var(--muted);cursor:pointer;transition:color .2s}
+.link:hover{color:var(--text)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 18px;border-radius:8px;border:1px solid var(--line-2);background:transparent;color:var(--text);font-size:14px;cursor:pointer;white-space:nowrap;transition:background .2s,border-color .2s,transform .12s,color .2s}
+.btn:hover{border-color:#4B4F59;background:var(--surface-2)}
+.btn:active{transform:scale(.98)}
+.btn.sm{height:32px;padding:0 14px;font-size:13px}
+.btn.primary{background:var(--text);border-color:var(--text);color:var(--bg)}
+.btn.primary:hover{background:var(--btn-hover);border-color:var(--btn-hover)}
+.btn:disabled{cursor:default;opacity:.85}
+.spin{width:14px;height:14px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:spin .7s linear infinite}
+
+/* panels */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;transition:border-color .25s}
+.phead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;border-bottom:1px solid var(--line)}
+
+/* home */
+.hero{font-weight:400;font-size:clamp(40px,6.4vw,64px);line-height:1.1;letter-spacing:-.037em;margin-top:clamp(40px,10vh,104px)}
+.hero .line{display:block;overflow:hidden;padding-bottom:.07em}
+.hero .line>span{display:block;animation:up .95s var(--ease) both;animation-delay:calc(var(--i,0)*120ms + 80ms)}
+.hero .dim{color:var(--muted)}
+.sub{margin:22px 0 40px;max-width:720px;font-size:17px;color:var(--muted)}
+.editor:focus-within,.editor.drag{border-color:var(--line-2)}
+.editor.drag{border-color:var(--text)}
+.tabs{position:relative;display:flex;gap:6px}
+.pill{position:absolute;top:0;left:0;height:100%;width:0;border-radius:7px;background:var(--surface-2);border:1px solid var(--line-2);transition:transform .34s var(--ease),width .34s var(--ease)}
+.tab{position:relative;z-index:1;background:none;border:0;padding:5px 14px;border-radius:7px;font-size:13px;color:var(--muted);cursor:pointer;transition:color .2s}
+.tab[aria-selected=true]{color:var(--text)}
+.hint{font-size:13px;color:var(--muted)}
+.ebody{display:grid;grid-template-columns:auto minmax(0,1fr);height:300px;font:14px/28px var(--mono)}
+.gutter{padding:16px 12px 16px 24px;text-align:right;color:var(--ghost);overflow:hidden;white-space:pre;user-select:none}
+.stack{position:relative;min-width:0;overflow:hidden}
+.stack pre,.stack textarea{position:absolute;inset:0;margin:0;border:0;padding:16px 24px 16px 8px;font:inherit;white-space:pre;tab-size:2}
+.stack pre{overflow:hidden;color:var(--pl);pointer-events:none}
+.stack textarea{overflow:auto;resize:none;outline:none;background:transparent;color:transparent;-webkit-text-fill-color:transparent;caret-color:var(--text)}
+.stack textarea::selection{background:rgba(231,232,234,.2)}
+.efoot{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 16px;border-top:1px solid var(--line)}
+.status{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
+.status .dot{width:7px;height:7px;border-radius:50%;background:var(--ok)}
+.status .faint{color:var(--faint)}
+.status #st-lang{transition:opacity .2s}
+.foot-hint{margin-top:26px;font-size:13px;color:var(--faint)}
+.k{color:var(--kw)}.s{color:var(--str)}.n{color:var(--num)}.c{color:var(--cmt)}
+
+/* running */
+.run-title{margin-top:56px;font-size:32px;font-weight:400;letter-spacing:-.025em;line-height:1.2}
+.run-sub{margin-top:6px;font-size:15px;color:var(--muted)}
+.bar{height:3px;margin:24px 0 32px;border-radius:2px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;width:0;border-radius:2px;background:var(--text);transition:width .9s var(--ease)}
+.run-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.03fr);gap:24px}
+.steps{margin:0;padding:15px 0;list-style:none}
+.step{display:flex;align-items:center;gap:16px;height:58px;padding:0 24px;border-bottom:1px solid var(--line)}
+.step:last-child{border-bottom:0}
+.step .lbl{flex:1;font-size:16px;color:var(--faint);transition:color .3s}
+.step.active .lbl,.step.done .lbl{color:var(--text)}
+.step .det{font:13px var(--mono);color:var(--muted);opacity:0;transition:opacity .3s;font-variant-numeric:tabular-nums}
+.step.active .det,.step.done .det{opacity:1}
+.ico{position:relative;flex:none;width:20px;height:20px}
+.ico svg{display:block;overflow:visible}
+.ico .ring{fill:none;stroke:var(--line);stroke-width:1.5;transition:stroke .3s}
+.ico .arc{fill:none;stroke:var(--text);opacity:0;transform-origin:10px 10px}
+.ico .tick{fill:none;stroke:var(--ok);stroke-dasharray:14;stroke-dashoffset:14}
+.step.active .ring{stroke:var(--line-2)}
+.step.active .arc{opacity:1;animation:spin .8s linear infinite}
+.step.done .ring{stroke:var(--ok-dim)}
+.step.done .tick{animation:draw .45s .08s var(--ease) forwards}
+.outp{display:flex;flex-direction:column;min-width:0}
+.outp .phead{padding:15px 24px;font:13px var(--mono);color:var(--muted)}
+.outp .phead small{font:11.5px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.outp pre{flex:1;margin:0;min-height:268px;max-height:268px;overflow:auto;padding:22px 24px;font:13px/24px var(--mono);color:var(--pl)}
+.caret{display:inline-block;width:2px;height:1.15em;margin-left:1px;vertical-align:text-bottom;background:var(--text);animation:blink 1s steps(1) infinite}
+.run-foot{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:24px;font-size:13px;color:var(--faint)}
+
+/* report */
+.crumb{margin-top:34px;font-size:13px;color:var(--muted)}
+.rhead{display:flex;align-items:center;justify-content:space-between;gap:16px 24px;flex-wrap:wrap;margin-top:14px}
+.rtitle{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.rtitle h2{font-size:34px;font-weight:400;letter-spacing:-.03em;line-height:1.15;overflow-wrap:anywhere}
+.chip{display:inline-flex;align-items:center;gap:8px;height:26px;padding:0 12px;border-radius:13px;border:1px solid var(--warn);background:var(--warn-tint);color:var(--warn);font-size:12.5px;transition:color .4s,background .4s,border-color .4s}
+.chip i{width:7px;height:7px;border-radius:50%;background:currentColor}
+.chip.ok{color:var(--ok);background:var(--ok-tint);border-color:var(--ok-dim)}
+.chip.kept{color:var(--muted);background:transparent;border-color:var(--line-2)}
+.ractions{display:flex;gap:12px}
+.summary{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1.6fr);margin-top:32px}
+.sum-l{padding:28px 32px 26px;border-right:1px solid var(--line)}
+.big{font-size:50px;line-height:1.05;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.big .dim{color:var(--muted)}
+.sum-l p{margin:6px 0 18px;font-size:15px;color:var(--muted)}
+.segs{display:flex;flex-wrap:wrap;gap:4px}
+.seg{width:22px;height:5px;border-radius:3px;background:var(--ok);transform-origin:left;animation:grow .4s var(--ease) both;animation-delay:calc(var(--k)*45ms + 450ms);transition:background .45s}
+.seg.warn{background:var(--warn)}.seg.kept{background:var(--faint)}
+.sum-r{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-content:center;padding:28px 32px}
+.stat small{display:block;font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.stat b{display:block;margin-top:6px;font-size:26px;font-weight:400;letter-spacing:-.025em;font-variant-numeric:tabular-nums;white-space:nowrap}
+.compare{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;margin-top:24px}
+.code{display:flex;flex-direction:column;min-width:0}
+.code .phead{padding:15px 24px;font:13px var(--mono);color:var(--muted)}
+.code .phead small{font:11.5px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.lines{padding:14px 0 18px;font:14px/25px var(--mono);overflow-x:auto;color:var(--pl)}
+.ln{display:flex;justify-content:space-between;gap:16px;min-height:25px;padding:0 24px;white-space:pre;animation:fade .4s both;animation-delay:calc(var(--k)*35ms + 350ms);transition:background .5s}
+.ln .tx{min-width:0}
+.ln.flag{background:var(--warn-tint);animation:fade .4s both,glow 1.6s 1.3s ease-in-out;animation-delay:calc(var(--k)*35ms + 350ms),1.3s}
+.ln.fixed{background:var(--ok-tint)}
+.ln .tag{align-self:center;font:11.5px var(--sans);color:var(--warn);white-space:nowrap}
+.ln.fixed .tag{color:var(--ok)}
+.static .ln,.static .trow{animation:none}
+.static .ln.new{animation:slide .5s var(--ease) both}
+.tbl{margin-top:24px;overflow:hidden}
+.tscroll{overflow-x:auto}
+.tin{min-width:700px}
+.trow{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1.15fr) minmax(0,1.15fr) 120px 64px;align-items:center;height:52px;padding:0 24px;border-bottom:1px solid var(--line);font-size:15px;transition:background .5s}
+.trow.head{height:44px;font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.trow.in{animation:rise .5s var(--ease) both;animation-delay:calc(var(--k)*60ms + 650ms)}
+.trow .m{font:14px var(--mono);color:var(--muted);font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.trow .m b{display:inline-block;font-weight:400}
+.trow .m b.flip{animation:roll .5s var(--ease) both}
+.trow.diff{background:var(--warn-tint)}
+.trow.diff .m.py{color:var(--text)}
+.res{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--ok);transition:color .35s}
+.res i{width:7px;height:7px;border-radius:50%;background:currentColor}
+.trow.diff .res{color:var(--warn)}
+.delta{justify-self:end;font:13px var(--mono);color:var(--warn);transition:opacity .3s}
+.more{display:grid;grid-template-rows:0fr;transition:grid-template-rows .5s var(--ease)}
+.more.open{grid-template-rows:1fr}
+.more>div{min-height:0;overflow:hidden}
+.more .trow .m,.more .trow{animation:none}
+.tfoot{display:flex;align-items:center;justify-content:space-between;height:52px;padding:0 24px;font-size:14px;color:var(--muted)}
+.tfoot button{background:none;border:0;padding:6px 0;font-size:14px;cursor:pointer;color:var(--text)}
+.tfoot button:hover{text-decoration:underline;text-underline-offset:3px}
+.why{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px 32px;align-items:end;margin-top:24px;padding:28px 32px}
+.why.swap{animation:fade .4s both}
+.why h3{margin-bottom:12px;font-size:18px;font-weight:400;letter-spacing:-.01em}
+.why p{font-size:15px;color:var(--muted)}
+.why .note{margin-top:18px;font-size:13px;color:var(--faint)}
+.why .acts{display:flex;gap:12px;flex-wrap:wrap}
+.why .okmark{display:inline-block;width:8px;height:8px;margin-right:10px;border-radius:50%;background:var(--ok)}
+
+/* prototype chrome */
+.toast{position:fixed;left:50%;bottom:calc(72px + env(safe-area-inset-bottom,0px));transform:translate(-50%,12px);max-width:calc(100% - 32px);padding:10px 16px;border-radius:10px;border:1px solid var(--line-2);background:var(--surface-2);color:var(--text);font-size:13px;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s var(--ease);z-index:20}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.proto{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;align-items:center;gap:2px;padding:4px;border-radius:10px;border:1px solid var(--line);background:var(--surface);z-index:15}
+.proto span{padding:0 8px 0 10px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.proto button{padding:6px 12px;border:0;border-radius:7px;background:none;font-size:12px;color:var(--muted);cursor:pointer;transition:background .2s,color .2s;white-space:nowrap}
+.proto button:hover{color:var(--text)}
+.proto button[aria-current=page]{background:var(--surface-2);color:var(--text)}
+
+@media (max-width:760px){
+  .navlinks .hide-s{display:none}
+  .run-grid,.compare,.summary{grid-template-columns:minmax(0,1fr)}
+  .sum-l{border-right:0;border-bottom:1px solid var(--line)}
+  .sum-r{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .why{grid-template-columns:minmax(0,1fr)}
+  .proto span{display:none}
+  .rtitle h2{font-size:28px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-delay:0s!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+</style>
+
+<div class="wrap">
+  <header class="nav">
+    <button class="brand" data-go="home" aria-label="Parity, back to start"><span class="mark" aria-hidden="true"><i></i><i></i></span>Parity</button>
+    <div class="navlinks">
+      <button class="link hide-s" data-toast="Docs are not part of this prototype.">Docs</button>
+      <button class="link hide-s" data-toast="Pricing is not part of this prototype.">Pricing</button>
+      <button class="btn sm" data-toast="Sign in is not part of this prototype.">Sign in</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- 1 · translate -->
+    <section class="view" id="view-home">
+      <h1 class="hero"><span class="line"><span style="--i:0">Move to Python.</span></span><span class="line dim"><span style="--i:1">Prove it matches.</span></span></h1>
+      <p class="sub rise" style="--i:3">Translate SAS and VBA, run both on your data, and see every number that differs.</p>
+      <div class="panel editor rise" id="editor" style="--i:4">
+        <div class="phead">
+          <div class="tabs" role="tablist" aria-label="Source language">
+            <i class="pill" id="pill"></i>
+            <button class="tab" role="tab" id="tab-sas" data-lang="sas" aria-selected="true">SAS</button>
+            <button class="tab" role="tab" id="tab-vba" data-lang="vba" aria-selected="false">VBA</button>
+          </div>
+          <span class="hint">Paste code or drop a file</span>
+        </div>
+        <div class="ebody">
+          <div class="gutter" id="gut" aria-hidden="true"></div>
+          <div class="stack"><pre id="hl" aria-hidden="true"></pre><textarea id="code" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Source code"></textarea></div>
+        </div>
+        <div class="efoot">
+          <div class="status"><i class="dot"></i><span id="st-lang">SAS detected</span><span class="faint">Python 3.12 · pandas 2.2</span></div>
+          <button class="btn primary" id="go-run">Translate</button>
+        </div>
+      </div>
+      <p class="foot-hint rise" style="--i:5">Drop .sas, .bas or .xlsm files anywhere on the page.</p>
+    </section>
+
+    <!-- 2 · translating -->
+    <section class="view" id="view-running" hidden>
+      <h2 class="run-title rise" style="--i:0" id="run-title">Translating loss_provision.sas</h2>
+      <p class="run-sub rise" style="--i:1" id="run-sub">Step 1 of 5</p>
+      <div class="bar rise" style="--i:2" role="progressbar" aria-label="Translation progress" aria-valuemin="0" aria-valuemax="100" id="bar-wrap"><i id="bar"></i></div>
+      <div class="run-grid">
+        <div class="panel rise" style="--i:3">
+          <ol class="steps" id="steps">
+            <li class="step"><span class="ico"><svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><circle class="ring" cx="10" cy="10" r="9"/><path class="arc" d="M10 1 A9 9 0 0 1 19 10" stroke-width="1.8" stroke-linecap="round"/><path class="tick" d="M6 10.4l2.8 2.8L14 7.4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="lbl">Parsed original</span><span class="det"></span></li>
+            <li class="step"><span class="ico"><svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><circle class="ring" cx="10" cy="10" r="9"/><path class="arc" d="M10 1 A9 9 0 0 1 19 10" stroke-width="1.8" stroke-linecap="round"/><path class="tick" d="M6 10.4l2.8 2.8L14 7.4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="lbl">Translated to pandas</span><span class="det"></span></li>
+            <li class="step"><span class="ico"><svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><circle class="ring" cx="10" cy="10" r="9"/><path class="arc" d="M10 1 A9 9 0 0 1 19 10" stroke-width="1.8" stroke-linecap="round"/><path class="tick" d="M6 10.4l2.8 2.8L14 7.4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="lbl">Running both on sample data</span><span class="det"></span></li>
+            <li class="step"><span class="ico"><svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><circle class="ring" cx="10" cy="10" r="9"/><path class="arc" d="M10 1 A9 9 0 0 1 19 10" stroke-width="1.8" stroke-linecap="round"/><path class="tick" d="M6 10.4l2.8 2.8L14 7.4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="lbl">Comparing outputs</span><span class="det"></span></li>
+            <li class="step"><span class="ico"><svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><circle class="ring" cx="10" cy="10" r="9"/><path class="arc" d="M10 1 A9 9 0 0 1 19 10" stroke-width="1.8" stroke-linecap="round"/><path class="tick" d="M6 10.4l2.8 2.8L14 7.4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="lbl">Writing report</span><span class="det"></span></li>
+          </ol>
+        </div>
+        <div class="panel outp rise" style="--i:4">
+          <div class="phead"><span id="out-name">loss_provision.py</span><small id="out-st">writing</small></div>
+          <pre id="out" aria-label="Generated Python"></pre>
+        </div>
+      </div>
+      <div class="run-foot rise" style="--i:5"><span>Both versions run on a sample of your data. Your original file is not changed.</span><button class="btn sm" id="cancel">Cancel</button></div>
+    </section>
+
+    <!-- 3 · report -->
+    <section class="view" id="view-report" hidden>
+      <p class="crumb rise" style="--i:0">Reports&nbsp; /&nbsp; <span id="r-crumb">loss_provision</span></p>
+      <div class="rhead rise" style="--i:1">
+        <div class="rtitle"><h2 id="r-title">loss_provision.sas</h2><span class="chip" id="r-chip" aria-live="polite"><i></i><span id="r-chip-t">1 difference</span></span></div>
+        <div class="ractions"><button class="btn" data-toast="Export is not connected in this prototype.">Export report</button><button class="btn primary" data-toast="Download is not connected in this prototype.">Download .py</button></div>
+      </div>
+      <div class="panel summary rise" style="--i:2">
+        <div class="sum-l"><div class="big"><span id="r-n">0</span> <span class="dim">/ 13</span></div><p>checks match</p><div class="segs" id="segs" aria-hidden="true"></div></div>
+        <div class="sum-r">
+          <div class="stat"><small>Compared</small><b id="s-rows">0 rows</b></div>
+          <div class="stat"><small>Run time</small><b id="s-time">0.0 s</b></div>
+          <div class="stat"><small>Tolerance</small><b>exact</b></div>
+        </div>
+      </div>
+      <div class="compare" id="compare">
+        <div class="panel code rise" style="--i:3"><div class="phead"><span id="src-name">loss_provision.sas</span><small>Original</small></div><div class="lines" id="src-lines"></div></div>
+        <div class="panel code rise" style="--i:4"><div class="phead"><span id="py-name">loss_provision.py</span><small>Translated</small></div><div class="lines" id="py-lines"></div></div>
+      </div>
+      <div class="panel tbl rise" style="--i:5">
+        <div class="tscroll"><div class="tin" role="table" aria-label="Checks">
+          <div class="trow head" role="row"><span role="columnheader">Check</span><span role="columnheader">SAS</span><span role="columnheader">Python</span><span role="columnheader">Result</span><span></span></div>
+          <div id="rows"></div>
+          <div class="more" id="more"><div><div id="rows-more"></div></div></div>
+          <div class="tfoot"><span id="more-label">9 more checks match</span><button id="more-btn" aria-expanded="false">Show all</button></div>
+        </div></div>
+      </div>
+      <div class="panel why rise" style="--i:6" id="why"></div>
+    </section>
+  </main>
+</div>
+
+<nav class="proto" aria-label="Prototype screens"><span>Prototype</span><button data-go="home">1 Translate</button><button data-go="running">2 Running</button><button data-go="report">3 Report</button></nav>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+'use strict';
+var $=function(s,r){return (r||document).querySelector(s)};
+var $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
+var reduced=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+var T=reduced?0.12:1;
+var esc=function(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')};
+var fmt=function(v){return Math.round(v).toLocaleString('en-US')};
+
+/* ---------- data ---------- */
+var DATA={
+  sas:{
+    label:'SAS',file:'loss_provision.sas',stmts:8,
+    src:['data provisions;','  set loans;','  rate = round(pd * lgd, 0.0001);','  prov = exposure * rate;','run;','','proc means data=provisions sum;','  var prov;','run;'],
+    srcFlag:2,
+    pyBefore:['import pandas as pd','','provisions = loans.copy()','provisions["rate"] = (','    provisions["pd"] * provisions["lgd"]',').round(4)','provisions["prov"] = (','    provisions["exposure"] * provisions["rate"]',')','','total = provisions["prov"].sum()'],
+    flagBefore:5,
+    pyAfter:['import pandas as pd','from parity import round_half_up','','provisions = loans.copy()','provisions["rate"] = (','    provisions["pd"] * provisions["lgd"]',').pipe(round_half_up, 4)','provisions["prov"] = (','    provisions["exposure"] * provisions["rate"]',')','','total = provisions["prov"].sum()'],
+    flagAfter:6,newAfter:1,
+    tag:'rounding',
+    diff:{name:'Sum of provisions',sas:'41,902,118.55',py:'41,902,121.17',delta:'+2.62'},
+    whyTitle:'Why the sum of provisions differs',
+    whyBody:['SAS rounds a tie away from zero. pandas rounds a tie to the nearest even digit.','312 of 48,210 rates sit exactly on a tie at the 4th decimal.'],
+    whyNote:'Applying the fix switches the translation to round half up and runs both versions again.',
+    fixedBody:'All 13 checks match. The translation now uses a round half up helper, the same rule SAS applies.'
+  },
+  vba:{
+    label:'VBA',file:'loss_provision.bas',stmts:9,
+    src:['Sub Provisions()','  Dim i As Long, total As Double','  For i = 2 To lastRow','    rate = Cells(i, 2) * Cells(i, 3)','    Cells(i, 5) = Cells(i, 4) * rate','    total = total + Cells(i, 5)','  Next i','  Cells(1, 7) = total / (lastRow - 1)','End Sub'],
+    srcFlag:7,
+    pyBefore:['import pandas as pd','','df = pd.read_excel("loans.xlsx")','df["rate"] = df["pd"] * df["lgd"]','df["prov"] = df["exposure"] * df["rate"]','total = df["prov"].sum()','avg = df["prov"].mean()'],
+    flagBefore:6,
+    pyAfter:['import pandas as pd','','df = pd.read_excel("loans.xlsx")','df["rate"] = df["pd"] * df["lgd"]','df["prov"] = df["exposure"] * df["rate"]','total = df["prov"].sum()','avg = df["prov"].fillna(0).mean()'],
+    flagAfter:6,newAfter:-1,
+    tag:'blank cells',
+    diff:{name:'Mean of provisions',sas:'869.16',py:'873.03',delta:'+3.87'},
+    whyTitle:'Why the mean of provisions differs',
+    whyBody:['VBA counts a blank cell as zero. pandas skips it.','214 of 48,210 rows have a blank exposure.'],
+    whyNote:'Applying the fix fills blank cells with 0 before the mean and runs both versions again.',
+    fixedBody:'All 13 checks match. The translation now treats blank cells as zero, the same rule VBA applies.'
+  }
+};
+var ROWS=[
+  ['Row count after filter','48,210','48,210'],
+  ['Sum of exposure','1,284,553,901.20','1,284,553,901.20']
+];
+var EXTRA=[
+  ['Sum of balance','962,114,880.37'],['Mean of exposure','26,644.97'],['Mean of lgd','0.4398'],
+  ['Max of exposure','2,500,000.00'],['Min of exposure','1,000.00'],['Std dev of balance','18,204.55'],
+  ['Distinct segments','6'],['Null count in pd','0'],['Row order','unchanged']
+];
+var S={lang:'sas',name:null,fix:'differs'};
+
+/* ---------- highlighter ---------- */
+var RX={
+  sas:/(\/\*.*?\*\/)|('[^']*'|"[^"]*")|(\b\d+(?:\.\d+)?\b)|\b(proc|means|data|set|run|quit|class|var|output|by|where|if|then|else|do|end|merge|keep|drop|format|input)\b/gi,
+  vba:/('.*$)|("[^"]*")|(\b\d+(?:\.\d+)?\b)|\b(Sub|End|Dim|As|Long|Double|String|For|To|Next|If|Then|Else|ElseIf|Function|Set|Call)\b/gi,
+  py:/(#.*$)|('[^']*'|"[^"]*")|(\b\d+(?:\.\d+)?\b)|\b(import|from|as|def|return|for|in|if|else|elif|with|lambda)\b/g
+};
+function hl(line,lang){
+  var rx=RX[lang];rx.lastIndex=0;var out='',last=0,m;
+  while((m=rx.exec(line))){
+    if(m[0].length===0){rx.lastIndex++;continue}
+    out+=esc(line.slice(last,m.index));
+    out+='<span class="'+(m[1]?'c':m[2]?'s':m[3]?'n':'k')+'">'+esc(m[0])+'</span>';
+    last=m.index+m[0].length;
+  }
+  return out+esc(line.slice(last));
+}
+
+/* ---------- helpers ---------- */
+var toastTimer;
+function toast(msg){var t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show')},2400)}
+function countTo(el,to,o){
+  o=o||{};var f=o.fmt||fmt,dur=o.dur||900,from=o.from!=null?o.from:(parseFloat(el.dataset.v)||0);
+  cancelAnimationFrame(el._raf);
+  if(reduced||from===to){el.textContent=f(to);el.dataset.v=to;return}
+  var t0=performance.now();
+  (function step(t){
+    var p=Math.min(1,(t-t0)/dur),e=1-Math.pow(1-p,3);
+    el.textContent=f(from+(to-from)*e);
+    if(p<1)el._raf=requestAnimationFrame(step);else el.dataset.v=to;
+  })(t0);
+}
+function fileName(){return S.name||DATA[S.lang].file}
+function baseName(){return fileName().replace(/\.[^.]+$/,'')}
+
+/* ---------- routing ---------- */
+var VIEWS={home:$('#view-home'),running:$('#view-running'),report:$('#view-report')};
+var current=null,routeSeq=0;
+function go(n){if(location.hash==='#'+n)route(n);else location.hash=n}
+function route(n){
+  if(!VIEWS[n])n='home';
+  var next=VIEWS[n],cur=current;
+  $$('.proto button').forEach(function(b){if(b.dataset.go===n)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
+  if(cur===next)return;
+  runTok++;
+  var seq=++routeSeq;
+  var enter=function(){
+    if(seq!==routeSeq)return;
+    Object.keys(VIEWS).forEach(function(k){VIEWS[k].hidden=VIEWS[k]!==next;VIEWS[k].classList.remove('out')});
+    current=next;window.scrollTo(0,0);
+    if(n==='home'){S.fix='differs';requestAnimationFrame(movePill)}
+    if(n==='running')startRun();
+    if(n==='report')buildReport();
+  };
+  if(cur){cur.classList.add('out');setTimeout(enter,reduced?0:150)}else enter();
+}
+window.addEventListener('hashchange',function(){route(location.hash.slice(1))});
+
+/* ---------- home / editor ---------- */
+var ta=$('#code'),pre=$('#hl'),gut=$('#gut'),pill=$('#pill');
+function renderEditor(){
+  var lines=ta.value.split('\n');
+  pre.innerHTML=lines.map(function(l){return hl(l,S.lang)}).join('\n')+'\n';
+  gut.textContent=lines.map(function(_,i){return i+1}).join('\n');
+}
+function movePill(){
+  var b=$('.tab[aria-selected=true]');if(!b||!b.offsetWidth)return;
+  pill.style.width=b.offsetWidth+'px';pill.style.transform='translateX('+b.offsetLeft+'px)';
+}
+function setLang(l,sample){
+  S.lang=l;if(sample){ta.value=DATA[l].src.join('\n');S.name=null}
+  $$('.tab').forEach(function(b){b.setAttribute('aria-selected',b.dataset.lang===l?'true':'false')});
+  movePill();renderEditor();
+  var st=$('#st-lang');st.style.opacity=0;setTimeout(function(){st.textContent=DATA[l].label+' detected';st.style.opacity=1},reduced?0:140);
+}
+function detect(v){
+  if(/\b(End\s+Sub|Sub\s+\w+\s*\(|Dim\s+\w+)/i.test(v))return 'vba';
+  if(/\b(proc\s+\w+|data\s+\w+\s*;|run\s*;)/i.test(v))return 'sas';
+  return null;
+}
+$$('.tab').forEach(function(b){b.addEventListener('click',function(){if(b.dataset.lang!==S.lang)setLang(b.dataset.lang,true)})});
+ta.addEventListener('input',function(){var d=detect(ta.value);if(d&&d!==S.lang)setLang(d,false);else renderEditor()});
+ta.addEventListener('scroll',function(){pre.scrollTop=ta.scrollTop;pre.scrollLeft=ta.scrollLeft;gut.scrollTop=ta.scrollTop});
+ta.addEventListener('keydown',function(e){if((e.metaKey||e.ctrlKey)&&e.key==='Enter'){e.preventDefault();go('running')}});
+$('#go-run').addEventListener('click',function(){go('running')});
+window.addEventListener('resize',movePill);
+
+/* drag and drop a file onto the page */
+var editor=$('#editor');
+window.addEventListener('dragover',function(e){if(current!==VIEWS.home)return;e.preventDefault();editor.classList.add('drag')});
+window.addEventListener('dragleave',function(e){if(!e.relatedTarget)editor.classList.remove('drag')});
+window.addEventListener('drop',function(e){
+  if(current!==VIEWS.home)return;e.preventDefault();editor.classList.remove('drag');
+  var f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0];if(!f)return;
+  var ext=(f.name.split('.').pop()||'').toLowerCase();
+  if(ext==='xlsm'||ext==='xlsx'){setLang('vba',true);toast('Excel files are read in the real product. Showing the VBA sample.');return}
+  var r=new FileReader();
+  r.onload=function(){var l=(ext==='bas'||ext==='vba'||ext==='cls')?'vba':'sas';S.lang=l;ta.value=String(r.result);setLang(l,false);S.name=f.name};
+  r.readAsText(f);
+});
+
+/* ---------- running ---------- */
+var runTok=0;
+function sleep(ms,tok){return new Promise(function(res,rej){setTimeout(function(){tok===runTok?res():rej('abort')},ms*T)})}
+function setStep(i,state){var li=$$('#steps .step')[i];li.classList.remove('active','done');if(state)li.classList.add(state)}
+function setBar(p){$('#bar').style.width=p+'%';$('#bar-wrap').setAttribute('aria-valuenow',Math.round(p))}
+function renderOut(text,caret){
+  var out=$('#out');
+  out.innerHTML=text.split('\n').map(function(l){return hl(l,'py')}).join('\n')+(caret?'<span class="caret"></span>':'');
+  out.scrollTop=out.scrollHeight;
+}
+function startRun(){
+  var tok=runTok,d=DATA[S.lang];S.fix='differs';
+  var dets=$$('#steps .det');
+  $('#run-title').textContent='Translating '+fileName();
+  $('#out-name').textContent=baseName()+'.py';$('#out-st').textContent='waiting';
+  $('#run-sub').textContent='Step 1 of 5';
+  $$('#steps .step').forEach(function(li,i){li.classList.remove('active','done');dets[i].textContent=''});
+  $('#bar').style.transition='none';setBar(0);void $('#bar').offsetWidth;$('#bar').style.transition='';
+  $('#out').innerHTML='';
+  var text=d.pyBefore.join('\n'),nonblank=d.pyBefore.filter(Boolean).length;
+  var sub=function(i){$('#run-sub').textContent='Step '+(i+1)+' of 5'};
+  (async function(){
+    try{
+      await sleep(650,tok);
+      sub(0);setStep(0,'active');setBar(10);dets[0].textContent=d.stmts+' statements';await sleep(950,tok);setStep(0,'done');setBar(20);
+      sub(1);setStep(1,'active');setBar(30);$('#out-st').textContent='writing';
+      var i=0;
+      while(i<text.length){i=Math.min(text.length,i+1+Math.floor(Math.random()*3));renderOut(text.slice(0,i),true);await sleep(13+Math.random()*16,tok)}
+      renderOut(text,false);dets[1].textContent=nonblank+' lines';$('#out-st').textContent='done';
+      await sleep(250,tok);setStep(1,'done');setBar(40);
+      sub(2);setStep(2,'active');setBar(55);dets[2].textContent='0 rows';countTo(dets[2],48210,{dur:1500*T,from:0,fmt:function(v){return fmt(v)+' rows'}});
+      await sleep(1700,tok);setStep(2,'done');setBar(70);
+      sub(3);setStep(3,'active');setBar(80);dets[3].textContent='0 checks';countTo(dets[3],13,{dur:900*T,from:0,fmt:function(v){return Math.round(v)+' checks'}});
+      await sleep(1100,tok);setStep(3,'done');setBar(90);
+      sub(4);setStep(4,'active');dets[4].textContent='1 report';await sleep(750,tok);setStep(4,'done');setBar(100);
+      await sleep(550,tok);
+      go('report');
+    }catch(e){if(e!=='abort')throw e}
+  })();
+}
+$('#cancel').addEventListener('click',function(){go('home')});
+
+/* ---------- report ---------- */
+function mkLines(lines,lang,flagIdx,flagClass,tag,newIdx){
+  return lines.map(function(l,k){
+    var cls='ln'+(l===''?' blank':'')+(k===flagIdx?' '+flagClass:'')+(k===newIdx?' new':'');
+    return '<div class="'+cls+'" style="--k:'+k+'"><span class="tx">'+hl(l,lang)+'</span>'+(k===flagIdx&&tag?'<span class="tag">'+esc(tag)+'</span>':'')+'</div>';
+  }).join('');
+}
+function whyHTML(){
+  var d=DATA[S.lang];
+  if(S.fix==='differs')return '<div><h3>'+d.whyTitle+'</h3><p>'+d.whyBody[0]+'</p><p>'+d.whyBody[1]+'</p><p class="note">'+d.whyNote+'</p></div><div class="acts"><button class="btn" id="keep">Keep as is</button><button class="btn primary" id="fix">Apply fix and re-run</button></div>';
+  if(S.fix==='fixed')return '<div><h3><span class="okmark"></span>Parity reached</h3><p>'+d.fixedBody+'</p></div><div class="acts"><button class="btn" id="undo">Undo fix</button></div>';
+  return '<div><h3>Difference kept</h3><p>It will be listed as an accepted difference in the exported report.</p></div><div class="acts"><button class="btn" id="undo">Undo</button></div>';
+}
+function bindWhy(){
+  var k=$('#keep'),f=$('#fix'),u=$('#undo');
+  if(k)k.addEventListener('click',function(){S.fix='kept';paint(true)});
+  if(u)u.addEventListener('click',function(){S.fix='differs';paint(true)});
+  if(f)f.addEventListener('click',function(){
+    f.disabled=true;f.innerHTML='<i class="spin"></i>Re-running';
+    setTimeout(function(){if(current===VIEWS.report){S.fix='fixed';paint(true)}},1300*T);
+  });
+}
+function rowHTML(name,a,b,k,id){
+  return '<div class="trow in" role="row" style="--k:'+k+'"'+(id?' id="'+id+'"':'')+'><span role="cell">'+esc(name)+'</span><span class="m" role="cell">'+esc(a)+'</span><span class="m py" role="cell"><b>'+esc(b)+'</b></span><span class="res" role="cell"><i></i><em style="font-style:normal">Match</em></span><span class="delta"></span></div>';
+}
+function buildReport(){
+  var d=DATA[S.lang],n=0;
+  $('#r-crumb').textContent=baseName();$('#r-title').textContent=fileName();
+  $('#src-name').textContent=fileName();$('#py-name').textContent=baseName()+'.py';
+  $('#segs').innerHTML=Array.apply(null,Array(13)).map(function(_,i){return '<span class="seg" style="--k:'+i+'"></span>'}).join('');
+  var rows=ROWS.concat(S.lang==='sas'?[['Mean of pd','0.0342','0.0342']]:[['Sum of provisions','41,902,118.55','41,902,118.55']]);
+  var html=rows.map(function(r,i){return rowHTML(r[0],r[1],r[2],i)}).join('')+rowHTML(d.diff.name,d.diff.sas,d.diff.py,rows.length,'row-diff');
+  $('#rows').innerHTML=html;
+  $('#rows-more').innerHTML=EXTRA.map(function(r,i){return rowHTML(r[0],r[1],r[1],i).replace(' in"','"')}).join('');
+  $('#more').classList.remove('open');$('#more-btn').setAttribute('aria-expanded','false');$('#more-btn').textContent='Show all';$('#more-label').textContent='9 more checks match';
+  $('#compare').classList.remove('static');
+  $('#r-n').dataset.v='0';$('#s-rows').dataset.v='0';$('#s-time').dataset.v='0';
+  paint(false);
+  setTimeout(function(){
+    countTo($('#s-rows'),48210,{dur:1100,from:0,fmt:function(v){return fmt(v)+' rows'}});
+    countTo($('#s-time'),3.2,{dur:1100,from:0,fmt:function(v){return v.toFixed(1)+' s'}});
+  },reduced?0:450);
+}
+function paint(animate){
+  var d=DATA[S.lang],st=S.fix,fixed=st==='fixed';
+  var cmp=$('#compare');if(animate)cmp.classList.add('static');
+  // chip
+  var chip=$('#r-chip');chip.className='chip'+(fixed?' ok':st==='kept'?' kept':'');
+  $('#r-chip-t').textContent=fixed?'All checks match':st==='kept'?'1 accepted difference':'1 difference';
+  // count + last segment
+  var seg=$$('#segs .seg')[12];seg.className='seg'+(fixed?'':st==='kept'?' kept':' warn');
+  var target=fixed?13:12,nEl=$('#r-n');
+  if(animate)countTo(nEl,target,{dur:700});else setTimeout(function(){countTo(nEl,target,{dur:900,from:0})},reduced?0:450);
+  // code panels
+  $('#src-lines').innerHTML=mkLines(d.src,S.lang,d.srcFlag,fixed?'fixed':'flag',fixed?'':d.tag,-1);
+  var py=fixed?d.pyAfter:d.pyBefore;
+  $('#py-lines').innerHTML=mkLines(py,'py',fixed?d.flagAfter:d.flagBefore,fixed?'fixed':'flag',fixed?'fixed':d.tag,fixed&&animate?d.newAfter:-1);
+  // diff row
+  var row=$('#row-diff');
+  if(row){
+    row.classList.toggle('diff',!fixed);
+    var res=$('.res em',row);res.textContent=fixed?'Match':'Differs';
+    var b=$('.py b',row),want=fixed?d.diff.sas:d.diff.py;
+    if(b.textContent!==want){b.textContent=want;if(animate){b.classList.remove('flip');void b.offsetWidth;b.classList.add('flip')}}
+    $('.delta',row).textContent=fixed?'':d.diff.delta;
+  }
+  // why
+  var why=$('#why');why.innerHTML=whyHTML();
+  if(animate){why.classList.remove('swap');void why.offsetWidth;why.classList.add('swap')}
+  bindWhy();
+}
+$('#more-btn').addEventListener('click',function(){
+  var more=$('#more'),open=!more.classList.contains('open');
+  more.classList.toggle('open',open);this.setAttribute('aria-expanded',open?'true':'false');
+  this.textContent=open?'Show fewer':'Show all';$('#more-label').textContent=open?'All 13 checks':'9 more checks match';
+});
+
+/* ---------- chrome ---------- */
+$$('[data-go]').forEach(function(b){b.addEventListener('click',function(){go(b.dataset.go)})});
+$$('[data-toast]').forEach(function(b){b.addEventListener('click',function(){toast(b.dataset.toast)})});
+document.addEventListener('keydown',function(e){
+  var tag=(e.target&&e.target.tagName)||'';if(tag==='TEXTAREA'||tag==='INPUT'||e.metaKey||e.ctrlKey||e.altKey)return;
+  if(e.key==='1')go('home');else if(e.key==='2')go('running');else if(e.key==='3')go('report');
+  else if(e.key==='Escape'&&current===VIEWS.running)go('home');
+});
+
+/* ---------- start ---------- */
+ta.value=DATA.sas.src.join('\n');renderEditor();
+route(location.hash.slice(1)||'home');
+requestAnimationFrame(function(){requestAnimationFrame(movePill)});
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(movePill);
+})();
+</script>
+</body></html>
