@@ -131,12 +131,14 @@ export function RunningScreen({ id }: { id: string }) {
   return (
     <>
       <h2 className="run-title rise" style={sv({ '--i': 0 })}>
-        Translating {title}
+        {err ? 'Run failed' : `Translating ${title}`}
       </h2>
-      <p className="run-sub rise" style={sv({ '--i': 1 })}>
-        Step {sub + 1} of 5
-      </p>
-      <ProgressBar percent={percent} index={2} />
+      {err ? null : (
+        <p className="run-sub rise" style={sv({ '--i': 1 })}>
+          Step {sub + 1} of 5
+        </p>
+      )}
+      {err ? <div style={{ height: 24 }}></div> : <ProgressBar percent={percent} index={2} />}
       {err ? (
         <ErrorPanel title="The Python did not run" message={err.message} stderr={err.stderr} onBack={() => nav('/')} index={3} />
       ) : (
@@ -147,12 +149,14 @@ export function RunningScreen({ id }: { id: string }) {
           <PythonOutput name={baseName(title) + '.py'} status={status} text={text} caret={status === 'writing'} index={4} />
         </div>
       )}
-      <div className="run-foot rise" style={sv({ '--i': 5 })}>
-        <span>The Python runs on your uploaded input. Your original file is not changed.</span>
-        <Button size="sm" onClick={cancel}>
-          Cancel
-        </Button>
-      </div>
+      {err ? null : (
+        <div className="run-foot rise" style={sv({ '--i': 5 })}>
+          <span>The Python runs on your uploaded input. Your original file is not changed.</span>
+          <Button size="sm" onClick={cancel}>
+            Cancel
+          </Button>
+        </div>
+      )}
     </>
   )
 }

@@ -1,10 +1,16 @@
+import os
 import re
 
 from .patch import PatchError, apply_patch
 from .rules import classify, flag_python
 from .types import Explanation, Hunk, Patch
 
-NO_KEY_NOTE = "Set OPENROUTER_API_KEY in .env to get a plain explanation and a proposed fix for this difference."
+NO_KEY_NOTE = "The translation model is not configured, so there is no explanation for this difference. Add its key in the environment settings to get one."
+NO_ANSWER_NOTE = "No explanation could be written for this difference."
+
+
+def none_note():
+    return NO_ANSWER_NOTE if os.environ.get("OPENROUTER_API_KEY", "").strip() else NO_KEY_NOTE
 HELPER = [
     "def round_half_up(s, n):",
     "    q = 10 ** n",
@@ -124,7 +130,7 @@ def rule_explanation(failing_checks, python, analysis, ctx=None, total=None):
     if tag == "missing values" and analysis.lang != "vba":
         tag = None
     if tag not in ("rounding", "missing values"):
-        return Explanation("none", None, "No explanation available", [], NO_KEY_NOTE, "")
+        return Explanation("none", None, "No explanation available", [], none_note(), "")
     count = f"All {total} checks match." if total else "All checks match."
     if tag == "rounding":
         return Explanation(

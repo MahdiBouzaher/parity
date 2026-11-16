@@ -127,11 +127,12 @@ def _parse_json(text):
 
 
 def _clean_text(text):
-    text = text.replace(" \u2014 ", ", ").replace("\u2014", ", ").replace("!", ".")
+    text = text.replace(" \u2014 ", ", ").replace("\u2014", ", ")
+    text = re.sub(r"!(?=\s|$)", ".", text)
     return re.sub(r"\s+", " ", text).strip()
 
 
-def _explanation_from(data, base, total):
+def _explanation_from(data, total):
     if not isinstance(data, dict):
         raise ValueError("shape")
     tag = data.get("tag")
@@ -162,7 +163,7 @@ def explain(code, lang, python, failing_checks, analysis, ctx, total=None):
         return rules
     try:
         text = _complete(prompts.explain_messages(code, lang, python, failing_checks, analysis, ctx))
-        return _explanation_from(_parse_json(text), rules, total)
+        return _explanation_from(_parse_json(text), total)
     except Exception:
         return rules
 

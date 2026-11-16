@@ -33,8 +33,8 @@
 .static .ln.new{animation:slide .5s var(--ease) both}
 .tbl{margin-top:24px;overflow:hidden}
 .tscroll{overflow-x:auto}
-.tin{min-width:700px}
-.trow{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1.15fr) minmax(0,1.15fr) 120px 64px;align-items:center;height:52px;padding:0 24px;border-bottom:1px solid var(--line);font-size:15px;transition:background .5s}
+.tin{min-width:760px}
+.trow{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1.15fr) minmax(0,1.1fr) 104px 120px;align-items:center;height:52px;padding:0 24px;border-bottom:1px solid var(--line);font-size:15px;transition:background .5s}
 .trow.head{height:44px;font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
 .trow.in{animation:rise .5s var(--ease) both;animation-delay:calc(var(--k)*60ms + 650ms)}
 .trow.click{cursor:pointer}
@@ -48,7 +48,7 @@
 .res{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--ok);transition:color .35s}
 .res i{width:7px;height:7px;border-radius:50%;background:currentColor}
 .trow.diff .res{color:var(--warn)}
-.delta{justify-self:end;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:13px var(--mono);color:var(--warn);transition:opacity .3s}
+.delta{justify-self:end;white-space:nowrap;font:13px var(--mono);color:var(--warn);transition:opacity .3s}
 .more,.rdet{display:grid;grid-template-rows:0fr;transition:grid-template-rows .5s var(--ease)}
 .more.open,.rdet.open{grid-template-rows:1fr}
 .more>div,.rdet>div{min-height:0;overflow:hidden}

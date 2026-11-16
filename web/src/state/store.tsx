@@ -140,4 +140,8 @@ export function useStore(): Store {
   return v
 }
 
-export const fileNameOf = (s: Pick<State, 'lang' | 'filename'>): string => s.filename ?? canned[s.lang].file
+export const fileNameOf = (s: Pick<State, 'lang' | 'filename' | 'source' | 'samples'>): string => {
+  if (s.filename) return s.filename
+  if (s.source === s.samples[s.lang] || s.source === SAMPLES[s.lang]) return canned[s.lang].file
+  return s.lang === 'vba' ? 'program.bas' : 'program.sas'
+}

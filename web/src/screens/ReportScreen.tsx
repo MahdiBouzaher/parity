@@ -18,7 +18,7 @@ const NONE: Explanation = {
   tag: null,
   title: 'No explanation available',
   paragraphs: [],
-  note: 'Set OPENROUTER_API_KEY in .env to get a plain explanation and a proposed fix for this difference.',
+  note: 'Only the numbers that differ are shown.',
   fixed_body: ''
 }
 
@@ -52,14 +52,15 @@ function ReportView({ run, onRun }: { run: Run; onRun: (r: Run) => void }) {
 
   const flagsFor = (lines: Run['risky_source'], tagText: (t: string) => string) => {
     const m = new Map<number, LineFlag>()
-    if (state === 'match' || !tag) return m
+    if (state === 'match' || (!tag && !fixed)) return m
     lines
-      .filter((r) => r.tag === tag)
+      .filter((r) => !tag || r.tag === tag)
       .forEach((r) => m.set(r.line, { cls: fixed ? 'fixed' : 'flag', tag: tagText(r.tag) }))
     return m
   }
   const srcFlags = flagsFor(run.risky_source, (t) => (fixed ? '' : t))
   const pyFlags = flagsFor(cur.risky_python, (t) => (fixed ? 'fixed' : t))
+  if (fixed && pyFlags.size === 0) cur.changed_lines.forEach((n) => pyFlags.set(n, { cls: 'fixed', tag: 'fixed' }))
   const fresh = new Set<number>(animate && fixed ? cur.changed_lines : [])
   const groupKey = `${cur.index}-${state}`
 
