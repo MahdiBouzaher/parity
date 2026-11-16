@@ -6,7 +6,7 @@
 .chip i{width:7px;height:7px;border-radius:50%;background:currentColor}
 .chip.ok{color:var(--ok);background:var(--ok-tint);border-color:var(--ok-dim)}
 .chip.kept{color:var(--muted);background:transparent;border-color:var(--line-2)}
-.ractions{display:flex;gap:12px}
+.ractions{display:flex;flex-wrap:wrap;gap:12px}
 .summary{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1.6fr);margin-top:32px}
 .sum-l{padding:28px 32px 26px;border-right:1px solid var(--line)}
 .big{font-size:50px;line-height:1.05;letter-spacing:-.04em;font-variant-numeric:tabular-nums}

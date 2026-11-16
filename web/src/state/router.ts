@@ -29,7 +29,8 @@ export function parseHash(hash: string): Route | null {
 
 export function viewKey(r: Route): string {
   if (r.name === 'running' || r.name === 'report') return `${r.name}:${r.id}`
-  return 'translate'
+  if (r.name === 'export' && r.id) return `export:${r.id}`
+  return r.name
 }
 
 export function nav(path: string): void {

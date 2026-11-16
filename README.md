@@ -26,6 +26,14 @@ npm run dev
 
 The dev server listens on http://localhost:5173 and proxies `/api` to the API on port 8000.
 
+## Run without a key
+
+Leave `OPENROUTER_API_KEY` empty. The rule layer writes the translation, the explanation and the fix, so every screen works. Add a key to `.env` to have the translation model write them instead.
+
+## Export
+
+Each report downloads as JSON and as a printable HTML page. Both carry SHA-256 hashes of the original code, the Python, the input and every expected output, and the JSON adds a hash of the report itself.
+
 ## Environment variables
 
 Copy `.env.example` to `.env` in the repository root. Every value is optional.
@@ -54,6 +62,8 @@ python samples/generate_samples.py
 ```
 
 The script rewrites the files and checks the properties the demo depends on.
+
+Tolerances are absolute and set per column. Mean, min and max checks use the tolerance as given. The sum check scales it by the row count, so 0.0001 on a column means 0.0001 times the rows for the sum.
 
 ## Sandbox limits
 

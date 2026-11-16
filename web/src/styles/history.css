@@ -1,0 +1,15 @@
+.hin{min-width:640px}
+.hrow{display:grid;grid-template-columns:minmax(0,1fr) 96px;align-items:center;height:52px;border-bottom:1px solid var(--line);transition:background .25s}
+.hrow.head{height:44px;font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.hrow.head .hlink{cursor:default;font-size:inherit;color:inherit;letter-spacing:inherit;text-transform:inherit}
+.hrow.in{animation:rise .5s var(--ease) both;animation-delay:calc(var(--k)*60ms + 200ms)}
+.hrow:not(.head):hover{background:var(--surface-2)}
+.hlink{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1.2fr) 130px 90px;align-items:center;height:100%;padding:0 0 0 24px;background:none;border:0;text-align:left;font-size:15px;cursor:pointer;color:var(--text)}
+.hname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hdate{font-size:14px;color:var(--muted)}
+.hn{font:14px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted);text-align:right;padding-right:8px}
+.hrow.head .hn{font:inherit}
+.hfail{font-size:14px;color:var(--muted)}
+.hdel{justify-self:end;margin-right:24px;height:32px;background:none;border:0;padding:0;font-size:13px;color:var(--muted);cursor:pointer;transition:color .2s}
+.hdel:hover{color:var(--text)}
+.hempty{display:flex;flex-direction:column;align-items:center;gap:20px;margin-top:80px;font-size:15px;color:var(--muted);text-align:center}

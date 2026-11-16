@@ -1,6 +1,9 @@
 import { Nav } from './components/Nav'
 import { Toast } from './components/Toast'
 import { ViewHost } from './components/ViewHost'
+import { DataScreen } from './screens/DataScreen'
+import { ExportScreen } from './screens/ExportScreen'
+import { HistoryScreen } from './screens/HistoryScreen'
 import { ReportScreen } from './screens/ReportScreen'
 import { RunningScreen } from './screens/RunningScreen'
 import { TranslateScreen } from './screens/TranslateScreen'
@@ -9,6 +12,9 @@ import { useHash, type Route } from './state/router'
 function render(route: Route) {
   if (route.name === 'running' && route.id) return <RunningScreen id={route.id} key={route.id} />
   if (route.name === 'report' && route.id) return <ReportScreen id={route.id} key={route.id} />
+  if (route.name === 'export' && route.id) return <ExportScreen id={route.id} key={route.id} />
+  if (route.name === 'data') return <DataScreen />
+  if (route.name === 'history') return <HistoryScreen />
   return <TranslateScreen />
 }
 

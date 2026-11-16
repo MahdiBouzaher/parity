@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { api, errorMessage } from '../api'
 import type { Lang } from '../api/types'
 import { Button } from '../components/Button'
 import { CodeEditor } from '../components/CodeEditor'
@@ -7,7 +6,7 @@ import { detect, extOf, langFromExt, readText } from '../lib/files'
 import { sv } from '../lib/format'
 import { prefersReducedMotion } from '../lib/hooks'
 import { nav } from '../state/router'
-import { fileNameOf, useStore } from '../state/store'
+import { useStore } from '../state/store'
 
 function Hero() {
   return (
@@ -28,7 +27,6 @@ export function TranslateScreen() {
   const { state, dispatch, toast } = useStore()
   const { lang, source, health } = state
   const [drag, setDrag] = useState(false)
-  const [busy, setBusy] = useState(false)
   const [shown, setShown] = useState<Lang>(lang)
   const [fade, setFade] = useState(false)
 
@@ -81,22 +79,12 @@ export function TranslateScreen() {
     }
   }, [dispatch, toast])
 
-  const translate = async () => {
+  const translate = () => {
     if (!source.trim()) {
       toast('Paste some code first.')
       return
     }
-    if (busy) return
-    setBusy(true)
-    try {
-      const ds = await api.sampleDataset(lang)
-      dispatch({ type: 'dataset', dataset: ds })
-      const { run_id } = await api.createRun({ lang, filename: fileNameOf(state), source, dataset_id: ds.id })
-      nav('/running/' + run_id)
-    } catch (e) {
-      toast(errorMessage(e))
-      setBusy(false)
-    }
+    nav('/data')
   }
 
   const configured = health ? health.translation_model.configured : false
@@ -129,7 +117,7 @@ export function TranslateScreen() {
           </>
         }
         action={
-          <Button variant="primary" onClick={translate} loading={busy}>
+          <Button variant="primary" onClick={translate}>
             Translate
           </Button>
         }

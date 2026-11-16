@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request
-from fastapi.responses import Response, StreamingResponse
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 
-from . import db, pipeline
+from . import db, export, pipeline
 from .datasets import check_lang, dataset_json, fetch_dataset
 from .errors import ApiError, not_found
 from .schemas import RunCreate
@@ -170,6 +170,40 @@ def python_file(run_id: str):
         media_type="text/x-python",
         headers={"Content-Disposition": f'attachment; filename="{stem}.py"'},
     )
+
+
+def export_source(run_id):
+    data = run_json(run_id)
+    if data["current"] is None or data["dataset"]["input"] is None:
+        raise ApiError(409, "conflict", "This run has no report to export.")
+    with db.session() as conn:
+        data["updated_at"] = pipeline.load_run(conn, run_id)["updated_at"]
+    return data
+
+
+@router.get("/{run_id}/export")
+def export_view(run_id: str):
+    return export.build_json(export_source(run_id))
+
+
+@router.get("/{run_id}/export.json")
+def export_json(run_id: str):
+    data = export_source(run_id)
+    stem = export.file_stem(data["filename"])
+    return JSONResponse(
+        export.build_json(data),
+        headers={"Content-Disposition": f'attachment; filename="{stem}-report.json"'},
+    )
+
+
+@router.get("/{run_id}/export.html")
+def export_html(run_id: str, inline: int = 0):
+    data = export_source(run_id)
+    headers = {}
+    if not inline:
+        stem = export.file_stem(data["filename"])
+        headers["Content-Disposition"] = f'attachment; filename="{stem}-report.html"'
+    return Response(export.build_html(data), media_type="text/html", headers=headers)
 
 
 @router.post("/{run_id}/fix")

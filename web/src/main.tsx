@@ -9,6 +9,9 @@ import './styles/panel.css'
 import './styles/editor.css'
 import './styles/steps.css'
 import './styles/report.css'
+import './styles/data.css'
+import './styles/history.css'
+import './styles/export.css'
 import './styles/toast.css'
 
 createRoot(document.getElementById('root') as HTMLElement).render(

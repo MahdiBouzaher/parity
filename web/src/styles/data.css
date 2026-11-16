@@ -1,0 +1,27 @@
+.dpanel{min-width:0;overflow:hidden}
+.dpanel .phead{padding:15px 24px;font:13px var(--mono);color:var(--muted)}
+.dpanel .phead small{font:11.5px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;width:calc(100% - 32px);min-height:96px;margin:16px;border:1px solid var(--line);border-radius:8px;background:transparent;color:var(--muted);font-size:14px;cursor:pointer;transition:border-color .25s,color .2s}
+.drop:hover{border-color:var(--line-2);color:var(--text)}
+.drop.drag{border-color:var(--text);color:var(--text)}
+.drop:disabled{cursor:default}
+.drop small{font-size:13px;color:var(--faint)}
+.dmeta{padding:0 24px 12px;font-size:13px;color:var(--muted)}
+.dscroll{overflow-x:auto}
+.dtab{width:100%;border-collapse:collapse;font:13px var(--mono);font-variant-numeric:tabular-nums}
+.dtab th{height:40px;padding:0 12px;border-top:1px solid var(--line);text-align:left;font:11.5px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--faint);white-space:nowrap;font-weight:400}
+.dtab th .dt{margin-left:8px;letter-spacing:0;text-transform:none;color:var(--muted)}
+.dtab td{height:40px;padding:0 12px;border-top:1px solid var(--line);color:var(--pl);white-space:nowrap}
+.dtab td.num{text-align:right}
+.dtab th:first-child,.dtab td:first-child{padding-left:24px}
+.dtab th:last-child,.dtab td:last-child{padding-right:24px}
+.dact{padding:10px 24px 14px;border-top:1px solid var(--line)}
+.tolp{margin-top:24px;overflow:hidden}
+.tolp .phead{padding:15px 24px;font-size:15px}
+.tolp .phead small{font:11.5px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.tolrow{display:flex;align-items:center;justify-content:space-between;gap:16px;height:52px;padding:0 24px;border-bottom:1px solid var(--line)}
+.tolrow:last-child{border-bottom:0}
+.tolrow span{font:14px var(--mono);color:var(--pl);overflow:hidden;text-overflow:ellipsis}
+.tolin{width:140px;height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--line-2);background:transparent;color:var(--text);font:13px var(--mono);text-align:right;font-variant-numeric:tabular-nums}
+.tolin::placeholder{color:var(--faint)}
+.dfoot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:24px}

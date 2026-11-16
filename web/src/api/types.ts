@@ -177,6 +177,27 @@ export interface CreateRunBody {
   dataset_id: string
 }
 
+export interface ExportReport {
+  format: string
+  version: number
+  generated_at: string
+  run_id: string
+  program: { filename: string; lang: Lang }
+  result: { state: Run['state']; matched: number; total: number; accepted_differences: string[] }
+  translation: { source: 'model' | 'rules'; model: string | null; revisions: { index: number; label: string; python_sha256: string }[] }
+  hashes: {
+    original_code: string
+    python: string
+    input: { name: string; sha256: string }
+    expected: { table: string; name: string; sha256: string }[]
+  }
+  tolerances: Record<string, number>
+  checks: Check[]
+  explanation: Explanation | null
+  code: { original: string; python: string }
+  report_sha256: string
+}
+
 export type StepKey = 'parse' | 'translate' | 'run' | 'compare' | 'report'
 
 export type RunEvent =
@@ -235,4 +256,6 @@ export interface ParityApi {
   listRuns(limit?: number, offset?: number): Promise<HistoryPage>
   deleteRun(id: string): Promise<{ ok: boolean }>
   pythonUrl(id: string): string
+  exportReport(id: string): Promise<ExportReport>
+  exportUrl(id: string, kind: 'json' | 'html'): string
 }

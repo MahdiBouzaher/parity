@@ -65,7 +65,9 @@ function init(): State {
 function reducer(s: State, a: Action): State {
   switch (a.type) {
     case 'lang':
-      return a.sample ? { ...s, lang: a.lang, source: s.samples[a.lang], filename: null } : { ...s, lang: a.lang }
+      return a.sample
+        ? { ...s, lang: a.lang, source: s.samples[a.lang], filename: null, dataset: null, datasetId: null }
+        : { ...s, lang: a.lang }
     case 'source':
       return { ...s, source: a.source, lang: a.lang ?? s.lang }
     case 'file':

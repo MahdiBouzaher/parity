@@ -2,6 +2,7 @@ import {
   ApiError,
   type CreateRunBody,
   type Dataset,
+  type ExportReport,
   type Health,
   type HistoryPage,
   type Lang,
@@ -76,5 +77,7 @@ export const http: ParityApi = {
   undoRun: (id) => req<Run>('POST', `/runs/${id}/undo`),
   listRuns: (limit = 50, offset = 0) => req<HistoryPage>('GET', `/runs?limit=${limit}&offset=${offset}`),
   deleteRun: (id) => req<{ ok: boolean }>('DELETE', `/runs/${id}`),
-  pythonUrl: (id) => `/api/runs/${id}/python`
+  pythonUrl: (id) => `/api/runs/${id}/python`,
+  exportReport: (id) => req<ExportReport>('GET', `/runs/${id}/export`),
+  exportUrl: (id, kind) => `/api/runs/${id}/export.${kind}`
 }

@@ -7,6 +7,7 @@ import {
   type Dataset,
   type DatasetFile,
   type Explanation,
+  type ExportReport,
   type HistoryItem,
   type Lang,
   type ParityApi,
@@ -180,6 +181,36 @@ function buildRun(r: Rec): Run {
     revisions,
     accepted: r.mode === 'kept',
     error: null
+  }
+}
+
+function exportFor(r: Rec): ExportReport {
+  const run = buildRun(r)
+  const differing = run.current.checks.filter((c) => c.status === 'differs').map((c) => c.id)
+  return {
+    format: 'parity-report',
+    version: 1,
+    generated_at: new Date().toISOString(),
+    run_id: run.id,
+    program: { filename: run.filename, lang: run.lang },
+    result: {
+      state: run.state,
+      matched: run.current.summary.matched,
+      total: run.current.summary.total,
+      accepted_differences: run.state === 'kept' ? differing : []
+    },
+    translation: { source: 'rules', model: null, revisions: run.revisions.map((v) => ({ index: v.index, label: v.label, python_sha256: v.python_sha256 })) },
+    hashes: {
+      original_code: run.source_sha256,
+      python: run.current.python_sha256,
+      input: { name: run.dataset.input.name, sha256: run.dataset.input.sha256 },
+      expected: run.dataset.expected.map((e) => ({ table: e.table, name: e.name, sha256: e.sha256 }))
+    },
+    tolerances: {},
+    checks: run.current.checks,
+    explanation: run.current.explanation,
+    code: { original: run.source, python: run.current.python },
+    report_sha256: fakeHash(run.id + run.state)
   }
 }
 
@@ -378,5 +409,10 @@ export const mock: ParityApi = {
   pythonUrl: (id) => {
     const text = buildRun(recFor(id)).current.python + '\n'
     return 'data:text/x-python;charset=utf-8,' + encodeURIComponent(text)
+  },
+  exportReport: async (id) => exportFor(recFor(id)),
+  exportUrl: (id, kind) => {
+    const body = kind === 'json' ? JSON.stringify(exportFor(recFor(id)), null, 2) : '<!doctype html><title>Report</title><p>Report ' + id
+    return `data:${kind === 'json' ? 'application/json' : 'text/html'};charset=utf-8,` + encodeURIComponent(body)
   }
 }
