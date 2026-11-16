@@ -5,12 +5,16 @@ from pathlib import Path
 
 import pandas as pd
 
-from . import config, db, dev_stub, patching, runner
+from dataclasses import asdict
+
+from . import config, db, patching, runner, translation
 from .compare import compare
-from .datasets import load_run_inputs
+from .datasets import dtype_name, load_run_inputs
 from .errors import ApiError, conflict, not_found
 from .hashing import sha256_text
 
+NOTICE_NO_KEY = "Translation model is not set up, using the rule layer."
+NOTICE_ERROR = "The translation model did not answer, using the rule layer."
 TERMINAL = {"done", "error", "cancelled"}
 BUFFERS = {}
 
@@ -110,6 +114,41 @@ def evaluate(run_id, python, dataset_id):
     return result, checks, make_summary(checks, rows, result.seconds, tolerances)
 
 
+def build_context(dataset_id, filename):
+    _, input_file, expected_files = load_run_inputs(dataset_id)
+    frame = pd.read_csv(input_file["path"], nrows=2000)
+    return translation.TranslateContext(
+        filename=filename,
+        input_columns=[str(c) for c in frame.columns],
+        input_dtypes={str(c): dtype_name(frame[c]) for c in frame.columns},
+        expected_tables={
+            f["table_name"]: [str(c) for c in pd.read_csv(f["path"], nrows=0).columns]
+            for f in expected_files
+        },
+    )
+
+
+def build_report(run, python, checks, summary, analysis, ctx, previous):
+    failing = [c for c in checks if c["status"] == "differs"]
+    explanation = previous
+    patch = None
+    tag = previous["tag"] if previous else None
+    if failing:
+        found = translation.explain(
+            run["source"], run["lang"], python, failing, analysis, ctx, total=summary["total"]
+        )
+        proposed = translation.propose_fix(
+            run["source"], run["lang"], python, failing, analysis, found
+        )
+        explanation = asdict(found)
+        patch = asdict(proposed) if proposed is not None else None
+        tag = found.tag
+    risky = [asdict(r) for r in translation.flag_python(python, analysis)]
+    if tag:
+        risky = [r for r in risky if r["tag"] == tag]
+    return explanation, patch, risky, tag
+
+
 def save_revision(
     run_id, idx, label, python, risky, changed, checks, summary, explanation, patch
 ):
@@ -182,36 +221,54 @@ def execute(run_id):
                 "model_configured": config.model_configured(),
             },
         )
-        step_event(
-            events, 0, "parse", "active", f"{dev_stub.statements(lang, run['source'])} statements", 10
-        )
-        risky = dev_stub.risky_source(lang, run["source"])
+        ctx = build_context(run["dataset_id"], run["filename"])
+        analysis = translation.analyze(run["source"], lang)
+        parse_detail = f"{analysis.statements} statements"
+        step_event(events, 0, "parse", "active", parse_detail, 10)
+        risky = [asdict(r) for r in analysis.risky_lines]
         with db.session() as conn:
             conn.execute(
                 "update runs set risky_source_json = ? where id = ?", (db.dumps(risky), run_id)
             )
         events.push("risks", {"risky_lines": risky})
-        step_event(
-            events, 0, "parse", "done", f"{dev_stub.statements(lang, run['source'])} statements", 20
-        )
+        step_event(events, 0, "parse", "done", parse_detail, 20)
         if cancelled(run_id, events):
             return
 
         step_event(events, 1, "translate", "active", "Writing Python", 30)
-        python = dev_stub.draft(lang)
-        for start in range(0, len(python), 6):
-            events.push("python", {"chunk": python[start : start + 6]})
-            time.sleep(0.008)
-        events.push("python_done", {"lines": len(python.splitlines()), "source": "rules"})
+        state = {"fallback": False}
         if not config.model_configured():
-            events.push(
-                "notice",
-                {
-                    "code": "no_key",
-                    "message": "Translation model is not set up, using the rule layer.",
-                },
+            events.push("notice", {"code": "no_key", "message": NOTICE_NO_KEY})
+
+        def on_fallback(message):
+            state["fallback"] = True
+            events.push("notice", {"code": "model_error", "message": NOTICE_ERROR})
+
+        pieces = []
+        try:
+            for chunk in translation.stream_translate(
+                run["source"], lang, analysis, ctx, on_fallback=on_fallback
+            ):
+                pieces.append(chunk)
+                events.push("python", {"chunk": chunk})
+        except translation.TranslateError:
+            state["fallback"] = True
+            events.push("notice", {"code": "model_error", "message": NOTICE_ERROR})
+            pieces = [analysis.draft_python]
+            for start in range(0, len(pieces[0]), 4):
+                events.push("python", {"chunk": pieces[0][start : start + 4]})
+                time.sleep(0.012)
+        python = "".join(pieces)
+        source_kind = "model" if config.model_configured() and not state["fallback"] else "rules"
+        model = config.model_name() if source_kind == "model" else None
+        with db.session() as conn:
+            conn.execute(
+                "update runs set translation_source = ?, model = ? where id = ?",
+                (source_kind, model, run_id),
             )
-        step_event(events, 1, "translate", "done", f"{len(python.splitlines())} lines", 40)
+        line_count = len(python.splitlines())
+        events.push("python_done", {"lines": line_count, "source": source_kind})
+        step_event(events, 1, "translate", "done", f"{line_count} lines", 40)
         if cancelled(run_id, events):
             return
 
@@ -225,7 +282,7 @@ def execute(run_id):
             step_event(events, 2, "run", "error", result.error["message"], 55)
             fail_run(run_id, events, "run", result.error)
             return
-        step_event(events, 2, "run", "done", f"{result.seconds:.1f} seconds", 70)
+        step_event(events, 2, "run", "done", f"{input_file['rows']:,} rows", 70)
 
         step_event(events, 3, "compare", "active", f"{summary['total']} checks", 80)
         events.push(
@@ -238,23 +295,23 @@ def execute(run_id):
                 "run_seconds": summary["run_seconds"],
             },
         )
-        step_event(events, 3, "compare", "done", f"{summary['matched']} of {summary['total']} match", 90)
+        step_event(events, 3, "compare", "done", f"{summary['total']} checks", 90)
         if cancelled(run_id, events):
             return
 
         step_event(events, 4, "report", "active", "Writing the report", 90)
-        patch = dev_stub.rule_patch(lang, python) if summary["differs"] else None
+        explanation, patch, risky_python, tag = build_report(
+            run, python, checks, summary, analysis, ctx, None
+        )
+        if summary["differs"] and tag:
+            filtered = [r for r in risky if r["tag"] == tag]
+            with db.session() as conn:
+                conn.execute(
+                    "update runs set risky_source_json = ? where id = ?",
+                    (db.dumps(filtered), run_id),
+                )
         save_revision(
-            run_id,
-            0,
-            "original",
-            python,
-            dev_stub.flag_python(lang, python),
-            [],
-            checks,
-            summary,
-            None,
-            patch,
+            run_id, 0, "original", python, risky_python, [], checks, summary, explanation, patch
         )
         with db.session() as conn:
             conn.execute(
@@ -330,18 +387,21 @@ def apply_fix(run_id):
     result, checks, summary = evaluate(run_id, python, run["dataset_id"])
     if not result.ok:
         raise ApiError(400, "run_failed", error_message(result.error))
-    lang = run["lang"]
-    next_patch = dev_stub.rule_patch(lang, python) if summary["differs"] else None
+    ctx = build_context(run["dataset_id"], run["filename"])
+    analysis = translation.analyze(run["source"], run["lang"])
+    explanation, next_patch, risky_python, _ = build_report(
+        run, python, checks, summary, analysis, ctx, db.loads(rev["explanation_json"])
+    )
     save_revision(
         run_id,
         rev["idx"] + 1,
         "fix",
         python,
-        dev_stub.flag_python(lang, python),
+        risky_python,
         changed,
         checks,
         summary,
-        None,
+        explanation,
         next_patch,
     )
     with db.session() as conn:

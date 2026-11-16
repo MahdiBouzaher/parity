@@ -41,4 +41,4 @@ def model_configured():
 def model_name():
     if not model_configured():
         return None
-    return os.environ.get("OPENROUTER_MODEL", "").strip() or None
+    return os.environ.get("OPENROUTER_MODEL", "").strip() or "openai/gpt-4o-mini"

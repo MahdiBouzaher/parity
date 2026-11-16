@@ -10,6 +10,7 @@ interface State {
   datasetId: string | null
   dataset: Dataset | null
   health: Health | null
+  samples: Record<Lang, string>
   toast: { id: number; msg: string } | null
 }
 
@@ -19,6 +20,7 @@ type Action =
   | { type: 'file'; source: string; lang: Lang; filename: string }
   | { type: 'dataset'; dataset: Dataset | null }
   | { type: 'health'; health: Health }
+  | { type: 'samples'; samples: Record<Lang, string> }
   | { type: 'toast'; msg: string }
 
 const KEYS = {
@@ -55,6 +57,7 @@ function init(): State {
     datasetId: read(KEYS.dataset),
     dataset: null,
     health: null,
+    samples: SAMPLES,
     toast: null
   }
 }
@@ -62,7 +65,7 @@ function init(): State {
 function reducer(s: State, a: Action): State {
   switch (a.type) {
     case 'lang':
-      return a.sample ? { ...s, lang: a.lang, source: SAMPLES[a.lang], filename: null } : { ...s, lang: a.lang }
+      return a.sample ? { ...s, lang: a.lang, source: s.samples[a.lang], filename: null } : { ...s, lang: a.lang }
     case 'source':
       return { ...s, source: a.source, lang: a.lang ?? s.lang }
     case 'file':
@@ -71,6 +74,10 @@ function reducer(s: State, a: Action): State {
       return { ...s, dataset: a.dataset, datasetId: a.dataset ? a.dataset.id : null }
     case 'health':
       return { ...s, health: a.health }
+    case 'samples': {
+      const untouched = s.filename === null && s.source === s.samples[s.lang]
+      return { ...s, samples: a.samples, source: untouched ? a.samples[s.lang] : s.source }
+    }
     case 'toast':
       return { ...s, toast: { id: (s.toast?.id ?? 0) + 1, msg: a.msg } }
   }
@@ -98,6 +105,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     api
       .health()
       .then((health) => dispatch({ type: 'health', health }))
+      .catch(() => undefined)
+  }, [])
+
+  useEffect(() => {
+    api
+      .samples()
+      .then((list) => {
+        const samples = { ...SAMPLES }
+        list.forEach((x) => {
+          samples[x.lang] = x.source
+        })
+        dispatch({ type: 'samples', samples })
+      })
       .catch(() => undefined)
   }, [])
 
