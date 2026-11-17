@@ -53,6 +53,18 @@ def para(text, style=BODY):
     return Paragraph(escape(safe(text)), style)
 
 
+SIGNATURE_LINE = 64
+
+
+def even_lines(value):
+    """Break a long value into equal lines on purpose, so no line holds a stray last character."""
+    text = safe(value)
+    count = -(-len(text) // SIGNATURE_LINE) if text else 1
+    size = -(-len(text) // count) if text else 1
+    chunks = [text[i : i + size] for i in range(0, len(text), size)] or [""]
+    return Paragraph("<br/>".join(escape(c) for c in chunks), MONO)
+
+
 def markup(text, style=BODY):
     return Paragraph(text, style)
 
@@ -179,9 +191,15 @@ def story_for(report):
         ("Signed at", sig["signed_at"]),
     ]
     block = [para("Signature", H2)]
-    block.append(grid([[para(a, HEAD), para(b, MONO)] for a, b in sig_rows],
+    block.append(grid([[para(a, HEAD), even_lines(b)] for a, b in sig_rows],
                       [WIDTH * 0.24, WIDTH * 0.76], header=False))
     block.append(Spacer(1, 6))
+    block.append(para(
+        "Tamper-evident: any change to this report breaks the signature. "
+        "The key fingerprint identifies the signing key, not a person.",
+        MUTED_STYLE,
+    ))
+    block.append(Spacer(1, 4))
     block.append(para(
         f"The signed report is attached to this file as {ATTACHMENT_NAME}. "
         "Upload this file on the Verify screen to check that it has not changed.",
