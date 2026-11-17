@@ -5,3 +5,6 @@ pandas
 numpy
 openai
 python-dotenv
+reportlab
+cryptography
+pypdf

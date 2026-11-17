@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 
-from . import db, export, pipeline
+from . import db, export, pdf_report, pipeline
 from .datasets import check_lang, dataset_json, fetch_dataset
 from .errors import ApiError, not_found
-from .schemas import RunCreate
+from .schemas import KeepBody, RunCreate
 
 router = APIRouter(prefix="/api/runs")
 
@@ -87,6 +87,7 @@ def run_json(run_id):
             for r in revisions
         ],
         "accepted": bool(run["accepted"]),
+        "keep_reason": run["keep_reason"] if run["accepted"] else None,
         "error": db.loads(run["error_json"]),
     }
 
@@ -183,7 +184,7 @@ def export_source(run_id):
 
 @router.get("/{run_id}/export")
 def export_view(run_id: str):
-    return export.build_json(export_source(run_id))
+    return export.build_signed_json(export_source(run_id))
 
 
 @router.get("/{run_id}/export.json")
@@ -191,7 +192,7 @@ def export_json(run_id: str):
     data = export_source(run_id)
     stem = export.file_stem(data["filename"])
     return JSONResponse(
-        export.build_json(data),
+        export.build_signed_json(data),
         headers={"Content-Disposition": f'attachment; filename="{stem}-report.json"'},
     )
 
@@ -206,6 +207,20 @@ def export_html(run_id: str, inline: int = 0):
     return Response(export.build_html(data), media_type="text/html", headers=headers)
 
 
+@router.get("/{run_id}/export.pdf")
+def export_pdf(run_id: str, inline: int = 0):
+    data = export_source(run_id)
+    headers = {}
+    if not inline:
+        stem = export.file_stem(data["filename"])
+        headers["Content-Disposition"] = f'attachment; filename="{stem}-report.pdf"'
+    return Response(
+        pdf_report.build_pdf(export.build_signed_json(data)),
+        media_type="application/pdf",
+        headers=headers,
+    )
+
+
 @router.post("/{run_id}/fix")
 def fix(run_id: str):
     pipeline.apply_fix(run_id)
@@ -213,9 +228,12 @@ def fix(run_id: str):
 
 
 @router.post("/{run_id}/keep")
-def keep(run_id: str):
+def keep(run_id: str, body: KeepBody):
+    reason = (body.reason or "").strip()
+    if not reason or len(reason) > 1000:
+        raise ApiError(422, "invalid_reason", "Say why this difference is acceptable.")
     current = run_json(run_id)
-    pipeline.keep_run(run_id, current["state"])
+    pipeline.keep_run(run_id, current["state"], reason)
     return run_json(run_id)
 
 

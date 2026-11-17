@@ -14,3 +14,7 @@ class SampleCreate(BaseModel):
 
 class TolerancesUpdate(BaseModel):
     tolerances: dict[str, float]
+
+
+class KeepBody(BaseModel):
+    reason: str = ""

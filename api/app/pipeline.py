@@ -417,16 +417,18 @@ def apply_fix(run_id):
     )
     with db.session() as conn:
         conn.execute(
-            "update runs set accepted = 0, updated_at = ? where id = ?", (db.now_iso(), run_id)
+            "update runs set accepted = 0, keep_reason = null, updated_at = ? where id = ?",
+            (db.now_iso(), run_id),
         )
 
 
-def keep_run(run_id, state):
+def keep_run(run_id, state, reason):
     if state != "differs":
         raise conflict("Only a run with differences can be kept as is.")
     with db.session() as conn:
         conn.execute(
-            "update runs set accepted = 1, updated_at = ? where id = ?", (db.now_iso(), run_id)
+            "update runs set accepted = 1, keep_reason = ?, updated_at = ? where id = ?",
+            (reason, db.now_iso(), run_id),
         )
 
 
@@ -436,7 +438,7 @@ def undo_run(run_id):
         rev = latest_revision(conn, run_id)
         if run["accepted"]:
             conn.execute(
-                "update runs set accepted = 0, updated_at = ? where id = ?",
+                "update runs set accepted = 0, keep_reason = null, updated_at = ? where id = ?",
                 (db.now_iso(), run_id),
             )
             return

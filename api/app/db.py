@@ -93,6 +93,9 @@ def init():
     config.DATASETS_DIR.mkdir(parents=True, exist_ok=True)
     with session() as conn:
         conn.executescript(SCHEMA)
+        columns = [row["name"] for row in conn.execute("pragma table_info(runs)")]
+        if "keep_reason" not in columns:
+            conn.execute("alter table runs add column keep_reason text")
         conn.execute(
             "update runs set status = 'failed', error_json = ?, updated_at = ? where status = 'running'",
             (

@@ -21,6 +21,7 @@ def _data_dir():
 DATA_DIR = _data_dir()
 DB_PATH = DATA_DIR / "parity.db"
 DATASETS_DIR = DATA_DIR / "datasets"
+KEYS_DIR = DATA_DIR / "keys"
 SAMPLES_DIR = ROOT / "samples"
 RUN_TIMEOUT = int(os.environ.get("PARITY_RUN_TIMEOUT", "30") or "30")
 CORS_ORIGINS = [

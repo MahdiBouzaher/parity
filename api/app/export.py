@@ -1,6 +1,8 @@
 from html import escape
 
+from . import signing
 from .hashing import canonical_sha256
+from .db import now_iso
 
 CSS = """
 :root{--bg:#0A0B0D;--surface:#111216;--surface-2:#17181D;--line:#23252B;--line-2:#34373F;--text:#E7E8EA;--muted:#8A8D96;--faint:#767983;--ghost:#4A4D55;--ok:#63C68F;--ok-tint:#14211A;--warn:#E3A64B;--warn-tint:#29231B}
@@ -45,6 +47,7 @@ def build_json(run):
             "matched": current["summary"]["matched"],
             "total": current["summary"]["total"],
             "accepted_differences": accepted_differences(run),
+            "keep_reason": run.get("keep_reason") if run["state"] == "kept" else None,
         },
         "translation": {
             "source": run["translation"]["source"],
@@ -75,6 +78,13 @@ def build_json(run):
     return body
 
 
+def build_signed_json(run):
+    body = build_json(run)
+    body["signed_at"] = now_iso()
+    body["signature"] = signing.sign_report(body)
+    return body
+
+
 def listing(text):
     lines = text.split("\n")
     if lines and lines[-1] == "":
@@ -90,7 +100,7 @@ def status_word(status):
 
 
 def build_html(run):
-    report = build_json(run)
+    report = build_signed_json(run)
     result = report["result"]
     differing = result["total"] - result["matched"]
     if run["state"] == "kept":
@@ -107,7 +117,12 @@ def build_html(run):
     ]
     for item in hashes["expected"]:
         hash_rows.append(("Expected output", item["name"], item["sha256"]))
+    sig = report["signature"]
     hash_rows.append(("Report", "JSON body without this hash", report["report_sha256"]))
+    hash_rows.append(("Signed payload", "Canonical JSON without the signature", sig["payload_sha256"]))
+    hash_rows.append(("Signature", "Ed25519, base64", sig["signature"]))
+    hash_rows.append(("Key fingerprint", "SHA-256 of the public key", sig["key_fingerprint"]))
+    hash_rows.append(("Signed at", "UTC", sig["signed_at"]))
     hash_html = "".join(
         f"<tr><td>{escape(a)}</td><td>{escape(b)}</td><td class=\"hash\">{escape(c)}</td></tr>"
         for a, b, c in hash_rows
@@ -134,6 +149,11 @@ def build_html(run):
     if result["accepted_differences"]:
         items = "".join(f"<li class=\"mono\">{escape(i)}</li>" for i in result["accepted_differences"])
         accepted = f"<h2>Accepted differences</h2><ul>{items}</ul>"
+        if result.get("keep_reason"):
+            accepted += (
+                "<h2>Why this difference is acceptable</h2>"
+                f"<p>{escape(result['keep_reason'])}</p>"
+            )
     lang = "SAS" if run["lang"] == "sas" else "VBA"
     title = f"Parity report for {escape(run['filename'])}"
     return (
