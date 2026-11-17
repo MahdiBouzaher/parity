@@ -34,7 +34,7 @@ export function CodePanel({ name, label, lang, lines, flags, fresh, groupKey, in
               <span className="tx">
                 <Hl line={l} lang={lang} />
               </span>
-              {flag && flag.tag ? <span className="tag">{flag.tag}</span> : null}
+              {flag && flag.tag && l.trim() !== '' ? <span className="tag">{flag.tag}</span> : null}
             </div>
           )
         })}
