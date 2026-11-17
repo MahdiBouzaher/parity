@@ -1,6 +1,6 @@
 import { useEffect, useSyncExternalStore } from 'react'
 
-export type RouteName = 'translate' | 'data' | 'running' | 'report' | 'history' | 'export'
+export type RouteName = 'translate' | 'data' | 'running' | 'report' | 'history' | 'export' | 'verify'
 
 export interface Route {
   name: RouteName
@@ -20,6 +20,7 @@ export function parseHash(hash: string): Route | null {
   if (parts.length === 0) return { name: 'translate' }
   const [head, id] = parts
   if (parts.length === 1 && head === 'data') return { name: 'data' }
+  if (parts.length === 1 && head === 'verify') return { name: 'verify' }
   if (parts.length === 1 && head === 'history') return { name: 'history' }
   if (parts.length === 2 && head === 'running') return { name: 'running', id }
   if (parts.length === 2 && head === 'report') return { name: 'report', id }

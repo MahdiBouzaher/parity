@@ -13,6 +13,7 @@ import './styles/data.css'
 import './styles/history.css'
 import './styles/export.css'
 import './styles/toast.css'
+import './styles/verify.css'
 
 createRoot(document.getElementById('root') as HTMLElement).render(
   <StoreProvider>

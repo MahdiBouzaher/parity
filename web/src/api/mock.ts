@@ -13,7 +13,8 @@ import {
   type ParityApi,
   type RiskyLine,
   type Run,
-  type RunEvent
+  type RunEvent,
+  type VerifyResult
 } from './types'
 
 type Mode = 'differs' | 'fixed' | 'kept'
@@ -25,6 +26,7 @@ interface Rec {
   source: string
   created_at: string
   mode: Mode
+  reason: string | null
 }
 
 const runs = new Map<string, Rec>()
@@ -180,6 +182,7 @@ function buildRun(r: Rec): Run {
     },
     revisions,
     accepted: r.mode === 'kept',
+    keep_reason: r.mode === 'kept' ? r.reason : null,
     error: null
   }
 }
@@ -191,13 +194,15 @@ function exportFor(r: Rec): ExportReport {
     format: 'parity-report',
     version: 1,
     generated_at: new Date().toISOString(),
+    signed_at: new Date().toISOString(),
     run_id: run.id,
     program: { filename: run.filename, lang: run.lang },
     result: {
       state: run.state,
       matched: run.current.summary.matched,
       total: run.current.summary.total,
-      accepted_differences: run.state === 'kept' ? differing : []
+      accepted_differences: run.state === 'kept' ? differing : [],
+      keep_reason: run.state === 'kept' ? r.reason : null
     },
     translation: { source: 'rules', model: null, revisions: run.revisions.map((v) => ({ index: v.index, label: v.label, python_sha256: v.python_sha256 })) },
     hashes: {
@@ -210,7 +215,15 @@ function exportFor(r: Rec): ExportReport {
     checks: run.current.checks,
     explanation: run.current.explanation,
     code: { original: run.source, python: run.current.python },
-    report_sha256: fakeHash(run.id + run.state)
+    report_sha256: fakeHash(run.id + run.state),
+    signature: {
+      algorithm: 'Ed25519',
+      payload_sha256: fakeHash(run.id + run.state + 'payload'),
+      signature: btoa(fakeHash(run.id + 'sig')),
+      public_key: btoa(fakeHash('instance key')),
+      key_fingerprint: fakeHash('instance key').slice(0, 16),
+      signed_at: new Date().toISOString()
+    }
   }
 }
 
@@ -223,7 +236,8 @@ function recFor(id: string): Rec {
     filename: canned.sas.file,
     source: SAMPLES.sas,
     created_at: new Date().toISOString(),
-    mode: 'differs'
+    mode: 'differs',
+    reason: null
   }
   runs.set(id, rec)
   return rec
@@ -373,7 +387,8 @@ export const mock: ParityApi = {
       filename: body.filename,
       source: body.source,
       created_at: new Date().toISOString(),
-      mode: 'differs'
+      mode: 'differs',
+      reason: null
     })
     return { run_id: id }
   },
@@ -386,14 +401,18 @@ export const mock: ParityApi = {
     rec.mode = 'fixed'
     return buildRun(rec)
   },
-  keepRun: async (id) => {
+  keepRun: async (id, reason) => {
+    const text = reason.trim()
+    if (text.length < 1 || text.length > 1000) throw new ApiError(422, 'invalid_request', 'Give a reason of 1 to 1000 characters.')
     const rec = recFor(id)
     rec.mode = 'kept'
+    rec.reason = text
     return buildRun(rec)
   },
   undoRun: async (id) => {
     const rec = recFor(id)
     rec.mode = 'differs'
+    rec.reason = null
     return buildRun(rec)
   },
   listRuns: async () => {
@@ -412,7 +431,26 @@ export const mock: ParityApi = {
   },
   exportReport: async (id) => exportFor(recFor(id)),
   exportUrl: (id, kind) => {
+    if (kind === 'pdf') return 'data:application/pdf;base64,' + btoa('%PDF-1.4\n% mock report ' + id)
     const body = kind === 'json' ? JSON.stringify(exportFor(recFor(id)), null, 2) : '<!doctype html><title>Report</title><p>Report ' + id
     return `data:${kind === 'json' ? 'application/json' : 'text/html'};charset=utf-8,` + encodeURIComponent(body)
+  },
+  verifyReport: async (file) => {
+    await wait(600 * scale())
+    const ext = (file.name.split('.').pop() || '').toLowerCase()
+    if (ext !== 'pdf' && ext !== 'json') throw new ApiError(422, 'invalid_request', 'This file is not a signed Parity report.')
+    const out: VerifyResult = {
+      status: 'valid',
+      this_instance: true,
+      signed_at: new Date().toISOString(),
+      key_fingerprint: fakeHash('instance key').slice(0, 16),
+      filename: canned.sas.file,
+      matched: canned.sas.checks.length,
+      total: canned.sas.checks.length,
+      state: 'fixed',
+      keep_reason: null,
+      reason: null
+    }
+    return out
   }
 }

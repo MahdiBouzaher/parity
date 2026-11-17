@@ -4,10 +4,12 @@ interface Props {
   label: string
   hint: string
   busy: boolean
+  accept?: string
+  busyLabel?: string
   onFile: (file: File) => void
 }
 
-export function DropZone({ label, hint, busy, onFile }: Props) {
+export function DropZone({ label, hint, busy, accept = '.csv,text/csv', busyLabel = 'Uploading', onFile }: Props) {
   const input = useRef<HTMLInputElement>(null)
   const [drag, setDrag] = useState(false)
   return (
@@ -31,13 +33,13 @@ export function DropZone({ label, hint, busy, onFile }: Props) {
           if (f) onFile(f)
         }}
       >
-        <span>{busy ? 'Uploading' : label}</span>
+        <span>{busy ? busyLabel : label}</span>
         <small>{hint}</small>
       </button>
       <input
         ref={input}
         type="file"
-        accept=".csv,text/csv"
+        accept={accept}
         hidden
         aria-label={label}
         onChange={(e) => {

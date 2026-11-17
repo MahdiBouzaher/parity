@@ -135,6 +135,7 @@ export interface Run {
   current: CurrentRevision
   revisions: Revision[]
   accepted: boolean
+  keep_reason: string | null
   error: RunError | null
 }
 
@@ -181,9 +182,10 @@ export interface ExportReport {
   format: string
   version: number
   generated_at: string
+  signed_at: string
   run_id: string
   program: { filename: string; lang: Lang }
-  result: { state: Run['state']; matched: number; total: number; accepted_differences: string[] }
+  result: { state: Run['state']; matched: number; total: number; accepted_differences: string[]; keep_reason: string | null }
   translation: { source: 'model' | 'rules'; model: string | null; revisions: { index: number; label: string; python_sha256: string }[] }
   hashes: {
     original_code: string
@@ -196,7 +198,32 @@ export interface ExportReport {
   explanation: Explanation | null
   code: { original: string; python: string }
   report_sha256: string
+  signature: ReportSignature
 }
+
+export interface ReportSignature {
+  algorithm: 'Ed25519'
+  payload_sha256: string
+  signature: string
+  public_key: string
+  key_fingerprint: string
+  signed_at: string
+}
+
+export interface VerifyResult {
+  status: 'valid' | 'modified'
+  this_instance: boolean
+  signed_at: string | null
+  key_fingerprint: string | null
+  filename: string | null
+  matched: number | null
+  total: number | null
+  state: string | null
+  keep_reason: string | null
+  reason: string | null
+}
+
+export type ExportKind = 'pdf' | 'json' | 'html'
 
 export type StepKey = 'parse' | 'translate' | 'run' | 'compare' | 'report'
 
@@ -251,11 +278,12 @@ export interface ParityApi {
   cancelRun(id: string): Promise<{ ok: boolean }>
   getRun(id: string): Promise<Run>
   fixRun(id: string): Promise<Run>
-  keepRun(id: string): Promise<Run>
+  keepRun(id: string, reason: string): Promise<Run>
   undoRun(id: string): Promise<Run>
   listRuns(limit?: number, offset?: number): Promise<HistoryPage>
   deleteRun(id: string): Promise<{ ok: boolean }>
   pythonUrl(id: string): string
   exportReport(id: string): Promise<ExportReport>
-  exportUrl(id: string, kind: 'json' | 'html'): string
+  exportUrl(id: string, kind: ExportKind): string
+  verifyReport(file: File): Promise<VerifyResult>
 }

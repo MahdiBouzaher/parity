@@ -64,11 +64,11 @@ function ReportView({ run, onRun }: { run: Run; onRun: (r: Run) => void }) {
   const fresh = new Set<number>(animate && fixed ? cur.changed_lines : [])
   const groupKey = `${cur.index}-${state}`
 
-  const act = async (kind: 'fix' | 'keep' | 'undo') => {
+  const act = async (kind: 'fix' | 'keep' | 'undo', reason = '') => {
     setBusy(kind)
     try {
       const next =
-        kind === 'fix' ? await api.fixRun(run.id) : kind === 'keep' ? await api.keepRun(run.id) : await api.undoRun(run.id)
+        kind === 'fix' ? await api.fixRun(run.id) : kind === 'keep' ? await api.keepRun(run.id, reason) : await api.undoRun(run.id)
       setAnimate(true)
       onRun(next)
     } catch (e) {
@@ -89,7 +89,10 @@ function ReportView({ run, onRun }: { run: Run; onRun: (r: Run) => void }) {
         </div>
         <div className="ractions">
           <Button onClick={() => nav('/export/' + run.id)}>Export report</Button>
-          <a className="btn primary" href={api.pythonUrl(run.id)} download={base + '.py'}>
+          <a className="btn primary" href={api.exportUrl(run.id, 'pdf')} download={base + '-report.pdf'}>
+            Signed PDF
+          </a>
+          <a className="btn" href={api.pythonUrl(run.id)} download={base + '.py'}>
             Download .py
           </a>
         </div>
@@ -137,7 +140,8 @@ function ReportView({ run, onRun }: { run: Run; onRun: (r: Run) => void }) {
         busy={busy}
         swap={animate}
         onFix={() => act('fix')}
-        onKeep={() => act('keep')}
+        onKeep={(reason) => act('keep', reason)}
+        keepReason={run.keep_reason}
         onUndo={() => act('undo')}
       />
     </>

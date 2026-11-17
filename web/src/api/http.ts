@@ -8,6 +8,7 @@ import {
   type Lang,
   type ParityApi,
   type Run,
+  type VerifyResult,
   type SampleInfo
 } from './types'
 import { openEvents } from './sse'
@@ -73,11 +74,12 @@ export const http: ParityApi = {
   cancelRun: (id) => req<{ ok: boolean }>('POST', `/runs/${id}/cancel`),
   getRun: (id) => req<Run>('GET', `/runs/${id}`),
   fixRun: (id) => req<Run>('POST', `/runs/${id}/fix`),
-  keepRun: (id) => req<Run>('POST', `/runs/${id}/keep`),
+  keepRun: (id, reason) => req<Run>('POST', `/runs/${id}/keep`, { reason }),
   undoRun: (id) => req<Run>('POST', `/runs/${id}/undo`),
   listRuns: (limit = 50, offset = 0) => req<HistoryPage>('GET', `/runs?limit=${limit}&offset=${offset}`),
   deleteRun: (id) => req<{ ok: boolean }>('DELETE', `/runs/${id}`),
   pythonUrl: (id) => `/api/runs/${id}/python`,
   exportReport: (id) => req<ExportReport>('GET', `/runs/${id}/export`),
-  exportUrl: (id, kind) => `/api/runs/${id}/export.${kind}`
+  exportUrl: (id, kind) => `/api/runs/${id}/export.${kind}`,
+  verifyReport: (file: File) => upload<VerifyResult>('POST', '/verify', file)
 }

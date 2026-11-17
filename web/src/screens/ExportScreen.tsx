@@ -72,13 +72,16 @@ export function ExportScreen({ id }: { id: string }) {
           <h2>Export report</h2>
         </div>
         <div className="ractions">
+          <a className="btn primary" href={api.exportUrl(id, 'pdf')} download={name + '-report.pdf'}>
+            Signed PDF
+          </a>
           <a className="btn" href={api.exportUrl(id, 'json')} download={name + '-report.json'}>
-            Download JSON
+            Signed JSON
+          </a>
+          <a className="btn" href={api.exportUrl(id, 'html')} download={name + '-report.html'}>
+            HTML
           </a>
           <Button onClick={() => window.print()}>Print</Button>
-          <a className="btn primary" href={api.exportUrl(id, 'html')} download={name + '-report.html'}>
-            Download HTML
-          </a>
         </div>
       </div>
       <Summary
@@ -90,6 +93,17 @@ export function ExportScreen({ id }: { id: string }) {
         seconds={run.current.summary.run_seconds}
         tolerance={run.current.summary.tolerance}
       />
+      {kept && rep.result.keep_reason ? (
+        <div className="panel xpanel rise" style={sv({ '--i': 3 })}>
+          <div className="phead">
+            <span>Accepted differences</span>
+            <small>Reason</small>
+          </div>
+          <p className="kreason" style={{ margin: 0, padding: '14px 24px 18px', fontSize: 15 }}>
+            <b>{rep.result.keep_reason}</b>
+          </p>
+        </div>
+      ) : null}
       <div className="panel xpanel rise" style={sv({ '--i': 3 })}>
         <div className="phead">
           <span>Hashes</span>

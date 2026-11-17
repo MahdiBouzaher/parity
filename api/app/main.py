@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from . import config, datasets, db, runs
+from . import config, datasets, db, runs, verify
 from .errors import ApiError
 
 
@@ -73,3 +73,4 @@ def health():
 app.include_router(datasets.router)
 app.include_router(datasets.samples_router)
 app.include_router(runs.router)
+app.include_router(verify.router)

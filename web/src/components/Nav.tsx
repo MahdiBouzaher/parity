@@ -14,6 +14,9 @@ export function Nav() {
         <button className="link" onClick={() => nav('/history')}>
           History
         </button>
+        <button className="link" onClick={() => nav('/verify')}>
+          Verify
+        </button>
       </div>
     </header>
   )

@@ -1,0 +1,14 @@
+.kform{display:grid;gap:10px;margin-top:18px}
+.kform label{font-size:13px;color:var(--muted)}
+.kform .kin{width:100%;min-height:72px;padding:10px 12px;border-radius:8px;border:1px solid var(--line-2);background:transparent;color:var(--text);font:14px/1.5 var(--sans);resize:vertical}
+.kform .kin::placeholder{color:var(--faint)}
+.kform .krow{display:flex;gap:12px;flex-wrap:wrap}
+.kreason{margin-top:14px;font-size:13px;color:var(--faint)}
+.kreason b{font-weight:400;color:var(--muted)}
+.vpanel{margin-top:24px;padding:28px 32px}
+.vpanel .vline{margin-top:16px;font-size:18px;letter-spacing:-.01em}
+.vpanel .vsub{margin-top:6px;font-size:15px;color:var(--muted);overflow-wrap:anywhere}
+.vpanel .vfp{margin-top:18px;font:13px var(--mono);color:var(--pl);overflow-wrap:anywhere}
+.vpanel .vfp small{display:block;margin-bottom:4px;font:11.5px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.vpanel .acts{margin-top:24px;display:flex;gap:12px;flex-wrap:wrap}
+.vdrop{margin-top:24px;overflow:hidden}
