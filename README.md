@@ -32,7 +32,31 @@ Leave `OPENROUTER_API_KEY` empty. The rule layer writes the translation, the exp
 
 ## Export
 
-Each report downloads as JSON and as a printable HTML page. Both carry SHA-256 hashes of the original code, the Python, the input and every expected output, and the JSON adds a hash of the report itself.
+Each report downloads as JSON, as a printable HTML page and as a PDF. All three carry SHA-256 hashes of the original code, the Python, the input and every expected output. JSON and PDF also carry the signature described below. A run kept with differences records why they are acceptable, and that reason appears in every format.
+
+## Signed reports
+
+The JSON body of a report is signed with Ed25519. What is signed is the canonical JSON of the whole body without its `signature` block: keys sorted, no extra spaces, UTF-8. The body includes the result, the checks, the hashes, the explanation, the code, the reason for a kept run, the report hash and `signed_at`.
+
+The `signature` block holds the algorithm, `payload_sha256` (the SHA-256 of those canonical bytes), the base64 signature, the base64 public key, the key fingerprint (SHA-256 of the raw 32 byte public key) and the signing time. The JSON export and the PDF both carry it, and the HTML export shows the hash, signature, fingerprint and time in its hashes table.
+
+The PDF embeds the signed report as a file attachment named `parity-report.json`, so the PDF can be verified later without the original run.
+
+The key pair is created on first use under `PARITY_DATA_DIR/keys` (`signing_key.pem` with mode 0600, and `signing_key.pub.pem`). Keep that folder safe and out of version control. Anyone who can read the private key can sign reports as this instance.
+
+This is an Ed25519 signature by this instance's own key. It is not a certificate and not a PAdES signature, so PDF readers will not show it as signed. If you lose `PARITY_DATA_DIR/keys`, a new key is generated and older reports no longer show as coming from this instance. They still verify as valid reports from another key.
+
+## Verify a report
+
+Open the Verify screen and drop in a signed PDF or JSON export, or send it to the API:
+
+```
+curl -F file=@loss_provision-report.pdf http://127.0.0.1:8000/api/verify
+```
+
+The API reads the embedded `parity-report.json` from a PDF, removes the signature block, recomputes the SHA-256 of the canonical JSON, compares it with `payload_sha256`, checks the Ed25519 signature against the public key in the block, and recomputes the report hash. The answer is `valid` when everything agrees and `modified` when any number, hash or signature differs. It also returns the signing time, key fingerprint, file name, checks matched, state and the reason for a kept run. `this_instance` is true when the fingerprint equals the key of the running instance, so a report signed by another instance verifies as valid with `this_instance` false. A file with no signed report in it gets a 422 error. Uploads can be up to 20 MB.
+
+The signature covers the embedded JSON. The visible text of a PDF is generated from the same data, but only the embedded report is checked.
 
 ## Environment variables
 
@@ -44,7 +68,7 @@ Copy `.env.example` to `.env` in the repository root. Every value is optional.
 | `OPENROUTER_MODEL` | Model name | `openai/gpt-4o-mini` |
 | `OPENROUTER_BASE_URL` | OpenAI-compatible endpoint | `https://openrouter.ai/api/v1` |
 | `PARITY_RUN_TIMEOUT` | Seconds a translated program may run | `30` |
-| `PARITY_DATA_DIR` | Where the database and uploads live | `./api/data` |
+| `PARITY_DATA_DIR` | Where the database, uploads and signing keys live | `./api/data` |
 | `PARITY_CORS_ORIGINS` | Allowed browser origins, comma separated | the two local dev origins |
 
 ## Samples
