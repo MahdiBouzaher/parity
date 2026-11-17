@@ -185,6 +185,27 @@ def save_revision(
         )
 
 
+def insert_event(conn, run_id, kind, summary, change, lines=(), reason=None):
+    seq = conn.execute(
+        "select coalesce(max(seq), -1) + 1 from history where run_id = ?", (run_id,)
+    ).fetchone()[0]
+    conn.execute(
+        "insert into history (run_id, seq, kind, matched, total, change, lines_json, reason, created_at) "
+        "values (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (
+            run_id,
+            seq,
+            kind,
+            summary["matched"],
+            summary["total"],
+            change,
+            db.dumps(list(lines)),
+            reason,
+            db.now_iso(),
+        ),
+    )
+
+
 def create_run(lang, filename, source, dataset_id):
     run_id = db.new_id()
     now = db.now_iso()
@@ -325,6 +346,7 @@ def execute(run_id):
             run_id, 0, "original", python, risky_python, [], checks, summary, explanation, patch
         )
         with db.session() as conn:
+            insert_event(conn, run_id, "first_run", summary, "First run")
             conn.execute(
                 "update runs set status = 'done', updated_at = ? where id = ? and status = 'running'",
                 (db.now_iso(), run_id),
@@ -416,6 +438,7 @@ def apply_fix(run_id):
         next_patch,
     )
     with db.session() as conn:
+        insert_event(conn, run_id, "fix", summary, patch["summary"], changed)
         conn.execute(
             "update runs set accepted = 0, keep_reason = null, updated_at = ? where id = ?",
             (db.now_iso(), run_id),
@@ -426,6 +449,10 @@ def keep_run(run_id, state, reason):
     if state != "differs":
         raise conflict("Only a run with differences can be kept as is.")
     with db.session() as conn:
+        rev = latest_revision(conn, run_id)
+        insert_event(
+            conn, run_id, "keep", db.loads(rev["summary_json"], {}), "Kept as is", [], reason
+        )
         conn.execute(
             "update runs set accepted = 1, keep_reason = ?, updated_at = ? where id = ?",
             (reason, db.now_iso(), run_id),
@@ -437,6 +464,9 @@ def undo_run(run_id):
         run = load_run(conn, run_id)
         rev = latest_revision(conn, run_id)
         if run["accepted"]:
+            insert_event(
+                conn, run_id, "undo_keep", db.loads(rev["summary_json"], {}), "Undid keep as is"
+            )
             conn.execute(
                 "update runs set accepted = 0, keep_reason = null, updated_at = ? where id = ?",
                 (db.now_iso(), run_id),
@@ -445,6 +475,10 @@ def undo_run(run_id):
         if rev is None or rev["idx"] == 0:
             raise conflict("There is nothing to undo.")
         conn.execute("delete from revisions where run_id = ? and idx = ?", (run_id, rev["idx"]))
+        previous = latest_revision(conn, run_id)
+        insert_event(
+            conn, run_id, "undo_fix", db.loads(previous["summary_json"], {}), "Undid the last fix"
+        )
         conn.execute("update runs set updated_at = ? where id = ?", (db.now_iso(), run_id))
 
 
@@ -452,6 +486,7 @@ def delete_run(run_id):
     with db.session() as conn:
         load_run(conn, run_id)
         conn.execute("delete from revisions where run_id = ?", (run_id,))
+        conn.execute("delete from history where run_id = ?", (run_id,))
         conn.execute("delete from runs where id = ?", (run_id,))
     BUFFERS.pop(run_id, None)
 

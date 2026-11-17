@@ -34,8 +34,90 @@ def accepted_differences(run):
     return [c["id"] for c in run["current"]["checks"] if c["status"] == "differs"]
 
 
+KIND_LABELS = {
+    "first_run": "First run",
+    "fix": "Fix applied",
+    "keep": "Kept as is",
+    "undo_fix": "Undo",
+    "undo_keep": "Undo",
+}
+
+
+def format_lines(lines):
+    """Turn [3, 4, 5, 9] into '3-5, 9'."""
+    numbers = sorted({int(n) for n in lines})
+    parts = []
+    start = prev = None
+    for n in numbers:
+        if start is None:
+            start = prev = n
+        elif n == prev + 1:
+            prev = n
+        else:
+            parts.append((start, prev))
+            start = prev = n
+    if start is not None:
+        parts.append((start, prev))
+    return ", ".join(str(a) if a == b else f"{a}-{b}" for a, b in parts)
+
+
+def build_history(run):
+    entries = []
+    for number, row in enumerate(run.get("history") or [], start=1):
+        change = row["change"]
+        if row["kind"] == "first_run" and row["matched"] == row["total"]:
+            change = "No fix needed"
+        entries.append(
+            {
+                "step": number,
+                "kind": row["kind"],
+                "matched": row["matched"],
+                "total": row["total"],
+                "change": change,
+                "lines": list(row["lines"]),
+                "reason": row.get("reason"),
+                "at": row.get("at"),
+            }
+        )
+    return entries
+
+
+def applied_fixes(history):
+    fixes = []
+    for row in history:
+        if row["kind"] == "fix":
+            fixes.append(row["change"].rstrip("."))
+        elif row["kind"] == "undo_fix" and fixes:
+            fixes.pop()
+    return fixes
+
+
+def closing_text(run, history):
+    current = run["current"]["summary"]
+    total = current["total"]
+    differing = total - current["matched"]
+    fixes = applied_fixes(history)
+    if fixes:
+        label = "Fix applied: " if len(fixes) == 1 else "Fixes applied: "
+        applied = label + "; ".join(fixes) + ". "
+    else:
+        applied = ""
+    if run["state"] == "kept":
+        reason = (run.get("keep_reason") or "").strip() or "no reason was recorded"
+        return (
+            f"{applied}Kept as is: {differing} of {total} checks still differ from the original. "
+            f"Reason given: {reason}"
+        )
+    if not differing:
+        if fixes:
+            return f"{applied}All {total} checks now match the original."
+        return f"All {total} checks matched on the first run. No fix was needed."
+    return f"{applied}{differing} of {total} checks differ from the original. The differences have not been accepted."
+
+
 def build_json(run):
     current = run["current"]
+    history = build_history(run)
     body = {
         "format": "parity-report",
         "version": 1,
@@ -71,6 +153,8 @@ def build_json(run):
         },
         "tolerances": run["dataset"]["tolerances"],
         "checks": current["checks"],
+        "history": history,
+        "closing": closing_text(run, history),
         "explanation": current["explanation"],
         "code": {"original": run["source"], "python": current["python"]},
     }
@@ -139,21 +223,32 @@ def build_html(run):
     )
     explanation = ""
     expl = report["explanation"]
-    if run["state"] in ("fixed", "match"):
-        body = (expl["fixed_body"] if expl and expl["fixed_body"] else f"All {result['total']} checks match.")
-        explanation = f"<h2>Parity reached</h2><p>{escape(body)}</p>"
-    elif expl:
+    if run["state"] not in ("fixed", "match") and expl:
         paragraphs = "".join(f"<p>{escape(p)}</p>" for p in expl["paragraphs"])
         explanation = f"<h2>{escape(expl['title'])}</h2>{paragraphs}"
     accepted = ""
     if result["accepted_differences"]:
         items = "".join(f"<li class=\"mono\">{escape(i)}</li>" for i in result["accepted_differences"])
         accepted = f"<h2>Accepted differences</h2><ul>{items}</ul>"
-        if result.get("keep_reason"):
-            accepted += (
-                "<h2>Why this difference is acceptable</h2>"
-                f"<p>{escape(result['keep_reason'])}</p>"
-            )
+    outcome = f"<h2>Outcome</h2><p>{escape(report['closing'])}</p>"
+    history = report["history"]
+    if len(history) == 1 and history[0]["kind"] == "first_run" and history[0]["matched"] == history[0]["total"]:
+        history_html = "<h2>History</h2><p>No fix needed</p>"
+    else:
+        history_rows = "".join(
+            "<tr>"
+            f"<td class=\"num\">{h['step']}</td>"
+            f"<td>{escape(KIND_LABELS.get(h['kind'], h['kind']))}</td>"
+            f"<td class=\"num\">{h['matched']} of {h['total']}</td>"
+            f"<td>{escape(h['change'])}{(' (' + escape(h['reason']) + ')') if h['reason'] else ''}</td>"
+            f"<td class=\"num\">{escape(format_lines(h['lines'])) or '-'}</td>"
+            "</tr>"
+            for h in history
+        )
+        history_html = (
+            "<h2>History</h2><table><thead><tr><th>#</th><th>Step</th><th>Checks</th>"
+            f"<th>Change</th><th>Lines</th></tr></thead><tbody>{history_rows}</tbody></table>"
+        )
     lang = "SAS" if run["lang"] == "sas" else "VBA"
     title = f"Parity report for {escape(run['filename'])}"
     return (
@@ -168,7 +263,7 @@ def build_html(run):
         f"<tbody>{hash_html}</tbody></table>"
         "<h2>Checks</h2><table><thead><tr><th>Check</th><th>Status</th><th>Expected</th>"
         f"<th>Actual</th><th>Tolerance</th></tr></thead><tbody>{check_html}</tbody></table>"
-        f"{explanation}{accepted}"
+        f"{history_html}{outcome}{explanation}{accepted}"
         f"<h2>Original code</h2>{listing(run['source'])}"
         f"<h2>Python</h2>{listing(run['current']['python'])}"
         "</main></body></html>"

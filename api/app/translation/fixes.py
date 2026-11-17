@@ -177,7 +177,7 @@ def round_fix(python):
     for i in idx:
         new = re.sub(r"\.round\((\d+)\)", r".pipe(round_half_up, \1)", lines[i])
         hunks.append(replace_line(i, lines[i], new))
-    return Patch("Round half up like SAS.", hunks)
+    return Patch("Rounding changed to half-up to match SAS.", hunks)
 
 
 def missing_fix(python, analysis):
@@ -215,7 +215,7 @@ def missing_fix(python, analysis):
                 hunks.append(replace_line(k, text, new))
     if not hunks:
         return None
-    return Patch("Treat blank cells as zero like VBA.", hunks)
+    return Patch("Blank cells now count as zero to match VBA.", hunks)
 
 
 def rule_fix(python, analysis, failing_checks=None, tag=None):

@@ -16,6 +16,7 @@ from reportlab.platypus import (
     TableStyle,
 )
 
+from .export import KIND_LABELS, format_lines
 from .signing import canonical_bytes
 
 ATTACHMENT_NAME = "parity-report.json"
@@ -148,12 +149,28 @@ def story_for(report):
         ])
     flow.append(grid(rows, [WIDTH * f for f in (0.34, 0.12, 0.18, 0.18, 0.18)]))
 
+    history = report["history"]
+    flow.append(para("History", H2))
+    if len(history) == 1 and history[0]["kind"] == "first_run" and history[0]["matched"] == history[0]["total"]:
+        flow.append(para("No fix needed"))
+    else:
+        rows = [[para(h, HEAD) for h in ("#", "Step", "Checks", "Change", "Lines")]]
+        for h in history:
+            change = h["change"] + (f" ({h['reason']})" if h.get("reason") else "")
+            rows.append([
+                para(h["step"], CELL),
+                para(KIND_LABELS.get(h["kind"], h["kind"]), CELL),
+                para(f"{h['matched']} of {h['total']}", CELL),
+                para(change, CELL),
+                para(format_lines(h["lines"]) or "-", CELL),
+            ])
+        flow.append(grid(rows, [WIDTH * f for f in (0.06, 0.16, 0.14, 0.46, 0.18)]))
+
+    flow.append(para("Outcome", H2))
+    flow.append(para(report["closing"]))
     expl = report.get("explanation")
-    if result["state"] in ("fixed", "match"):
-        body = expl["fixed_body"] if expl and expl.get("fixed_body") else f"All {result['total']} checks match."
-        flow.append(para("Parity reached", H2))
-        flow.append(para(body))
-    elif expl:
+    if result["state"] not in ("fixed", "match") and expl:
+        flow.append(Spacer(1, 6))
         flow.append(para(expl["title"], H2))
         for p in expl["paragraphs"]:
             flow.append(para(p))
@@ -162,8 +179,6 @@ def story_for(report):
         flow.append(para("Kept difference", H2))
         for check_id in result["accepted_differences"]:
             flow.append(para(check_id, MONO))
-        flow.append(para("Why this difference is acceptable", H2))
-        flow.append(para(result.get("keep_reason") or "No reason was recorded."))
 
     flow.append(para("Original code", H2))
     flow.append(listing(report["code"]["original"]))

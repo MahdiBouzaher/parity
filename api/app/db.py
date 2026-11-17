@@ -55,6 +55,18 @@ create table if not exists revisions (
   created_at text not null,
   primary key (run_id, idx)
 );
+create table if not exists history (
+  run_id text not null,
+  seq integer not null,
+  kind text not null,
+  matched integer not null,
+  total integer not null,
+  change text not null,
+  lines_json text not null default '[]',
+  reason text,
+  created_at text not null,
+  primary key (run_id, seq)
+);
 """
 
 

@@ -173,12 +173,64 @@ def python_file(run_id: str):
     )
 
 
+def history_rows(conn, run_id, data):
+    rows = conn.execute(
+        "select * from history where run_id = ? order by seq", (run_id,)
+    ).fetchall()
+    if rows:
+        return [
+            {
+                "kind": r["kind"],
+                "matched": r["matched"],
+                "total": r["total"],
+                "change": r["change"],
+                "lines": db.loads(r["lines_json"], []),
+                "reason": r["reason"],
+                "at": r["created_at"],
+            }
+            for r in rows
+        ]
+    revisions = load_revisions(conn, run_id)
+    rows = []
+    for index, rev in enumerate(revisions):
+        change = "First run"
+        if index:
+            patch = db.loads(revisions[index - 1]["patch_json"]) or {}
+            change = patch.get("summary") or "Fix applied"
+        rows.append(
+            {
+                "kind": "fix" if index else "first_run",
+                "matched": rev["summary"].get("matched", 0),
+                "total": rev["summary"].get("total", 0),
+                "change": change,
+                "lines": db.loads(rev["changed_lines_json"], []),
+                "reason": None,
+                "at": rev["created_at"],
+            }
+        )
+    if data["accepted"] and revisions:
+        last = revisions[-1]["summary"]
+        rows.append(
+            {
+                "kind": "keep",
+                "matched": last.get("matched", 0),
+                "total": last.get("total", 0),
+                "change": "Kept as is",
+                "lines": [],
+                "reason": data.get("keep_reason"),
+                "at": data.get("updated_at"),
+            }
+        )
+    return rows
+
+
 def export_source(run_id):
     data = run_json(run_id)
     if data["current"] is None or data["dataset"]["input"] is None:
         raise ApiError(409, "conflict", "This run has no report to export.")
     with db.session() as conn:
         data["updated_at"] = pipeline.load_run(conn, run_id)["updated_at"]
+        data["history"] = history_rows(conn, run_id, data)
     return data
 
 
